@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>야구 규칙 마스터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        baseball: { red: '#E31837', blue: '#002D72', grass: '#4CAF50', dirt: '#D7CCC8' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 야구장 미니맵 (Padding Hack 강제 1:1 비율) --- */
+        .stadium-wrapper {
+            width: 100%;
+            max-width: min(100%, 45vh); 
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .stadium-wrapper { max-width: 450px; }
+        }
+
+        .stadium-square {
+            width: 100%;
+            padding-top: 100%; /* 절대 깨지지 않는 1:1 비율 보장 */
+            position: relative;
+            background: #1e3a8a;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .stadium-inner {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
+        }
+
+        .minimap-outfield {
+            position: absolute;
+            left: 5%; right: 5%; bottom: 5%; top: 5%;
+            background-color: #4CAF50;
+            border-radius: 50% 50% 0 0;
+            border: 4px solid #fde047; /* 노란색 펜스 */
+            border-bottom: none;
+        }
+
+        /* 내야 흙 (거대 마름모) */
+        .minimap-dirt {
+            position: absolute; left: 25%; bottom: 15%; width: 50%; height: 50%; 
+            background-color: #d2a679; transform-origin: center; transform: rotate(45deg); border-radius: 8px;
+        }
+
+        /* 내야 잔디 (마름모 - 모서리가 1,2,3,홈에 완벽 일치) */
+        .minimap-grass {
+            position: absolute; left: 32.325%; bottom: 22.325%; width: 35.35%; height: 35.35%;
+            background-color: #4CAF50; transform-origin: center; transform: rotate(45deg); border: 2px dashed rgba(255,255,255,0.7); border-radius: 4px;
+        }
+
+        /* 베이스 위치 (다이아몬드 꼭지점에 절대 좌표로 배치) */
+        .minimap-base {
+            position: absolute; width: 6%; height: 6%; background-color: white; z-index: 10;
+            transform: translate(-50%, 50%) rotate(45deg); box-shadow: -1px 1px 3px rgba(0,0,0,0.3);
+        }
+        .minimap-home { left: 50%; bottom: 15%; border-radius: 50% 50% 0 50%; }
+        .minimap-1b { left: 75%; bottom: 40%; }
+        .minimap-2b { left: 50%; bottom: 65%; }
+        .minimap-3b { left: 25%; bottom: 40%; }
+        
+        .minimap-mound {
+            position: absolute; left: 50%; bottom: 40%; width: 10%; height: 10%;
+            background-color: #bfa38a; border-radius: 50%; transform: translate(-50%, 50%); z-index: 8;
+        }
+        .minimap-pitcher-plate {
+            position: absolute; top: 50%; left: 50%; width: 40%; height: 15%; background-color: white; transform: translate(-50%, -50%);
+        }
+
+        /* --- 파울존 (빨간색 투명 영역 및 자막) --- */
+        .minimap-foul-zone {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(227, 24, 55, 0.35); z-index: 5; pointer-events: none; display: none;
+        }
+        .minimap-foul-zone.left { clip-path: polygon(0 0, 0 100%, 50% 100%, 50% 85%, 0 35%); }
+        .minimap-foul-zone.right { clip-path: polygon(100% 0, 100% 100%, 50% 100%, 50% 85%, 100% 35%); }
+
+        .foul-text {
+            position: absolute; color: rgba(255, 255, 255, 0.85); font-weight: 900; font-size: clamp(24px, 6vw, 36px);
+            letter-spacing: 2px; text-shadow: 0 2px 6px rgba(0,0,0,0.6); z-index: 6; pointer-events: none; display: none; white-space: nowrap;
+        }
+        .foul-text.left { left: 22%; bottom: 20%; transform: translate(-50%, 50%); }
+        .foul-text.right { right: 22%; bottom: 20%; transform: translate(50%, 50%); }
+
+        /* --- 캐릭터 및 공 --- */
+        .minimap-runner, .minimap-defender {
+            position: absolute; width: 8%; height: 8%; border-radius: 50%; transform: translate(-50%, 50%);
+            z-index: 20; display: flex; align-items: center; justify-content: center; font-size: clamp(14px, 3vw, 20px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.5); background-color: white; border: 3px solid; 
+        }
+        .minimap-runner { border-color: #E31837; z-index: 21; }
+        .minimap-defender { border-color: #002D72; z-index: 20; }
+        
+        .minimap-defender-label {
+            position: absolute; top: -20px; font-size: 10px; font-weight: bold; color: #fff; background: #002D72;
+            padding: 2px 5px; border-radius: 4px; white-space: nowrap;
+        }
+
+        /* 수비수가 공을 들고 있는 효과 (중앙에 흰색 원) */
+        .defender-has-ball::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 14px;
+            height: 14px;
+            background-color: white;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            z-index: 25;
+        }
+
+        .minimap-ball {
+            position: absolute; width: 3.5%; height: 3.5%; background-color: white; border-radius: 50%;
+            transform: translate(-50%, 50%); z-index: 30; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.4); display: none; 
+        }
+
+        .minimap-extra {
+            position: absolute; z-index: 35; font-size: clamp(16px, 4vw, 24px); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transform: translate(-50%, 50%);
+        }
+
+        /* 팝업 애니메이션 */
+        .minimap-popup {
+            position: absolute; z-index: 50; font-weight: 900; font-size: clamp(20px, 5vw, 28px); text-align: center;
+            pointer-events: none; opacity: 0; transform: translate(-50%, 50%) scale(0); text-shadow: 0 2px 4px rgba(0,0,0,0.8); white-space: nowrap;
+        }
+        @keyframes animPopup {
+            0% { opacity: 0; transform: translate(-50%, 50%) scale(0) rotate(-15deg); }
+            15% { opacity: 1; transform: translate(-50%, 50%) scale(1.4) rotate(10deg); }
+            30% { opacity: 1; transform: translate(-50%, 50%) scale(1) rotate(0deg); }
+            80% { opacity: 1; transform: translate(-50%, 50%) scale(1) rotate(0deg); }
+            100% { opacity: 0; transform: translate(-50%, 50%) scale(0); }
+        }
+
+        .out-state { filter: grayscale(100%); opacity: 0.5; }
+
+        /* 모바일 최적화 스크롤바 감추기 */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* 퀴즈 박스 꽉 차는 레이아웃 (노 스크롤 최적화) */
+        .quiz-card-compact { height: 100%; max-height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        /* 에디터(수정 창) 스타일 */
+        .custom-editor { min-height: 80px; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem; font-size: 0.75rem; outline: none; background-color: white; overflow-y: auto; }
+        .custom-editor:focus { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
+        .editor-toolbar button { padding: 4px 8px; background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .editor-toolbar button:hover { background-color: #e5e7eb; }
+        
+        /* 모바일 드롭다운 메뉴 스타일 */
+        #mobile-dropdown-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        #mobile-dropdown-menu.open {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- 헤더 -->
+    <header class="bg-gray-900 text-white p-3 md:p-4 shadow-md flex justify-between items-center z-50 shrink-0">
+        <div class="flex flex-col md:flex-row md:items-end">
+            <h1 class="text-base sm:text-lg md:text-2xl font-black tracking-tight flex items-center leading-tight md:leading-none">
+                <i class="fa-solid fa-trophy text-yellow-400 mr-1.5 md:mr-2"></i>야구 규칙 마스터
+            </h1>
+            <span class="md:ml-3 mt-0.5 md:mt-0 mb-0 md:mb-0.5 text-[9px] md:text-xs font-medium text-white/40 tracking-wider block md:inline-block">made by. Teacher TG</span>
+        </div>
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <nav class="flex space-x-1 bg-white rounded-full p-1">
+                <button id="nav-learn" class="px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold bg-gray-900 text-white transition-colors" onclick="switchTab('learn')">학습하기</button>
+                <button id="nav-quiz" class="px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors" onclick="switchTab('quiz')">퀴즈 풀기</button>
+            </nav>
+            <button onclick="document.getElementById('admin-login-modal').classList.remove('hidden')" class="text-gray-400 hover:text-white transition-colors p-1" title="관리자 모드">
+                <i class="fa-solid fa-lock"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+        
+        <section id="section-learn" class="w-full h-full flex flex-col md:flex-row overflow-hidden">
+            
+            <!-- 모바일 전용 토글 버튼 영역 (PC에서는 숨김) -->
+            <div class="md:hidden w-full bg-gray-50 border-b border-gray-200 p-3 shrink-0 z-[100] relative shadow-sm">
+                <button onclick="toggleMobileMenu()" class="w-full bg-white border border-gray-300 rounded-lg p-3 flex justify-between items-center shadow-sm">
+                    <div class="flex items-center w-full">
+                        <i class="fa-solid fa-list text-blue-600 mr-3"></i>
+                        <div class="flex flex-col text-left overflow-hidden">
+                            <span id="mobile-current-rule-cat" class="text-[10px] text-gray-400 font-bold"></span>
+                            <span id="mobile-current-rule-title" class="font-bold text-gray-800 text-sm truncate">상황을 선택해주세요</span>
+                        </div>
+                    </div>
+                    <i id="mobile-menu-icon" class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 ml-2"></i>
+                </button>
+                
+                <!-- 모바일 드롭다운 메뉴 목록 -->
+                <div id="mobile-dropdown-menu" class="absolute left-3 right-3 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-2xl z-[100] flex flex-col divide-y divide-gray-100">
+                    <!-- 버튼들이 JS로 여기에 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- PC 전용 좌측 세로 리스트 (모바일에서는 숨김) -->
+            <div class="hidden md:flex w-full md:w-1/3 border-r border-gray-200 bg-gray-50 p-4 flex-col shrink-0 z-10 overflow-y-auto hide-scrollbar">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center shrink-0">
+                    <i class="fa-solid fa-book-open text-blue-500 mr-2"></i> 상황별 학습
+                </h2>
+                <div class="flex flex-col w-full" id="situation-list-pc">
+                    <!-- 아코디언 메뉴들이 JS로 여기에 추가됩니다 -->
+                </div>
+            </div>
+
+            <!-- 우측 상세 컨텐츠 영역 -->
+            <div class="flex-grow md:w-2/3 flex flex-col bg-white relative overflow-hidden h-full z-0">
+                <div class="w-full h-full overflow-y-auto flex flex-col hide-scrollbar">
+                    
+                    <div id="empty-state" class="flex-grow flex flex-col items-center justify-center text-gray-400 p-8 text-center min-h-[400px]">
+                        <i class="fa-solid fa-hand-pointer text-5xl mb-4 opacity-50"></i>
+                        <p class="text-lg font-medium">학습할 규칙을 선택해주세요.</p>
+                    </div>
+
+                    <div id="detail-view" class="hidden flex-col relative w-full">
+                        <div id="minimap-container" class="bg-gray-900 flex flex-col items-center justify-center relative shrink-0 p-2 md:p-4 min-h-[250px] md:h-[450px] z-0">
+                            <!-- 컨트롤 박스 -->
+                            <div class="absolute top-2 left-2 flex flex-col space-y-1 z-10">
+                                <div class="flex items-center space-x-1.5">
+                                    <button onclick="playMinimapAnimation()" class="bg-white/90 text-gray-900 text-xs md:text-sm font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg hover:bg-white hover:scale-105 transition-all flex items-center border border-gray-200">
+                                        <i class="fa-solid fa-play text-red-500 mr-1"></i> 재현하기
+                                    </button>
+                                    <select id="anim-speed-select" onchange="playMinimapAnimation()" class="bg-white/90 text-gray-700 text-[10px] md:text-xs font-bold px-2 py-1.5 md:px-3 md:py-2 rounded-full shadow-lg outline-none cursor-pointer hover:bg-white transition-all border border-gray-200">
+                                        <option value="4.0">🐢 0.25배</option>
+                                        <option value="2.0">🚶 0.5배</option>
+                                        <option value="1.0" selected>🏃 기본</option>
+                                        <option value="0.5">⚡ 2배</option>
+                                    </select>
+                                </div>
+                                <div class="bg-gray-900/80 backdrop-blur text-white p-2 md:p-3 rounded-xl shadow-lg border border-gray-700 w-28 md:w-36 mt-2 hidden md:block absolute top-10 md:top-12 left-0 z-10">
+                                    <div class="text-[10px] md:text-xs font-bold text-gray-400 mb-1 md:mb-2 pb-1 border-b border-gray-700 flex items-center">
+                                        <i class="fa-solid fa-circle-info mr-1"></i> 포지션
+                                    </div>
+                                    <div class="space-y-1 text-[10px] md:text-xs font-medium">
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">1B</span> 1루수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">2B</span> 2루수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">3B</span> 3루수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">SS</span> 유격수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">LF</span> 좌익수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">CF</span> 중견수</div>
+                                        <div class="flex items-center"><span class="w-4 h-4 md:w-6 md:h-6 rounded-full bg-white text-blue-900 border-2 border-blue-900 flex items-center justify-center font-bold mr-2 text-[8px] md:text-[10px]">RF</span> 우익수</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="stadium-wrapper">
+                                <div class="stadium-square z-0">
+                                    <div class="stadium-inner" id="stadium-baseball">
+                                        <div class="minimap-outfield"></div>
+                                        <div class="minimap-dirt"></div>
+                                        <div class="minimap-grass"></div>
+                                        
+                                        <div class="minimap-foul-zone left" id="foul-zone-left"></div>
+                                        <div class="minimap-foul-zone right" id="foul-zone-right"></div>
+                                        <span class="foul-text left" id="foul-text-left">FOUL</span>
+                                        <span class="foul-text right" id="foul-text-right">ZONE</span>
+
+                                        <div class="minimap-mound"><div class="minimap-pitcher-plate"></div></div>
+                                        <div class="minimap-base minimap-home"></div>
+                                        <div class="minimap-base minimap-1b"></div>
+                                        <div class="minimap-base minimap-2b"></div>
+                                        <div class="minimap-base minimap-3b"></div>
+                                        
+                                        <div id="minimap-elements"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-5 md:p-8 flex-grow bg-white relative shrink-0">
+                            <div id="admin-controls" class="hidden absolute top-4 right-4 flex space-x-2">
+                                <button onclick="openEditModal()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1.5 px-3 rounded text-sm shadow"><i class="fa-solid fa-pen mr-1"></i>수정</button>
+                                <button onclick="changePassword()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1.5 px-3 rounded text-sm shadow"><i class="fa-solid fa-key mr-1"></i>비번변경</button>
+                                <button onclick="logoutAdmin()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-1.5 px-3 rounded text-sm shadow"><i class="fa-solid fa-right-from-bracket mr-1"></i>종료</button>
+                            </div>
+
+                            <div class="flex items-center space-x-2 mb-2"><span id="detail-category" class="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-bold tracking-wider"></span></div>
+                            <h3 id="detail-title" class="text-2xl font-black text-gray-900 mb-4 pr-32"></h3>
+                            <div id="detail-description" class="text-sm md:text-base text-gray-600 mb-6 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100"></div>
+                            
+                            <div class="bg-blue-50/50 p-4 md:p-5 rounded-xl border border-blue-100 mb-8" id="points-box" style="display:none;">
+                                <h4 class="font-bold text-gray-900 mb-3 flex items-center"><i class="fa-solid fa-lightbulb text-yellow-500 mr-2"></i> 핵심 포인트</h4>
+                                <ul id="detail-points" class="space-y-2 text-sm text-gray-700"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 퀴즈 섹션 -->
+        <section id="section-quiz" class="hidden w-full h-full bg-gray-50 items-center justify-center p-4 md:p-8 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-3xl overflow-hidden flex flex-col h-full max-h-[700px]">
+                <div id="quiz-start" class="flex-grow flex flex-col items-center justify-center p-8 text-center">
+                    <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-clipboard-question text-5xl text-blue-500"></i></div>
+                    <h2 class="text-3xl font-black mb-2 text-gray-900">야구 규칙 실력 점검</h2>
+                    <p class="text-gray-500 mb-8 max-w-md">학습한 규칙들을 바탕으로 퀴즈를 풀어보세요. 틀려도 힌트와 함께 다시 도전할 수 있습니다!</p>
+                    <button onclick="startQuiz()" class="bg-gray-900 hover:bg-black text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 text-lg">퀴즈 시작하기</button>
+                </div>
+
+                <div id="quiz-question-container" class="hidden flex-col h-full">
+                    <div class="px-4 py-4 md:px-6 md:py-5 border-b border-gray-100 bg-gray-50 shrink-0">
+                        <div class="flex justify-between items-center mb-2"><span id="quiz-progress-text" class="text-xs font-bold text-gray-500">1 / 10</span></div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 mb-3 overflow-hidden"><div id="quiz-progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 10%"></div></div>
+                        <span id="quiz-category" class="inline-block px-2 py-1 font-bold rounded-full text-[10px] mb-2 bg-blue-100 text-blue-800"></span>
+                        <h3 id="quiz-question-text" class="text-lg md:text-xl font-bold text-gray-900 leading-tight"></h3>
+                    </div>
+                    
+                    <div class="px-4 py-3 md:px-6 md:py-4 flex-grow flex flex-col justify-between overflow-y-auto">
+                        <div>
+                            <div id="quiz-options" class="space-y-2"></div>
+                            <div id="quiz-hint-container" class="hidden mt-3 p-3 border rounded-xl text-xs md:text-sm font-bold flex items-start fade-in"></div>
+                        </div>
+                        
+                        <div id="quiz-navigation" class="flex justify-between mt-4 pt-3 border-t border-gray-100 shrink-0">
+                            <button id="btn-prev-quiz" onclick="prevQuestion()" class="px-4 py-2 rounded-lg font-bold bg-gray-200 text-gray-700 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"><i class="fa-solid fa-chevron-left mr-2"></i>이전 문제</button>
+                            <button id="btn-next-quiz" onclick="nextQuestion()" class="px-4 py-2 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors text-sm">다음 문제<i class="fa-solid fa-chevron-right ml-2"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quiz-result" class="hidden flex-grow flex flex-col items-center justify-center p-8 text-center">
+                    <div id="result-icon" class="w-24 h-24 rounded-full flex items-center justify-center mb-4"></div>
+                    <h2 class="text-3xl font-black mb-2 text-gray-900">테스트 완료!</h2>
+                    <div class="text-5xl font-black text-blue-600 mb-4" id="result-score">100점</div>
+                    <p id="result-message" class="text-gray-600 mb-8 font-medium"></p>
+                    <div class="flex space-x-3">
+                        <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow transition-colors"><i class="fa-solid fa-rotate-right mr-2"></i>다시 풀기</button>
+                        <button onclick="switchTab('learn')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl transition-colors">학습으로 돌아가기</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 관리자 모달 -->
+    <div id="admin-login-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center">
+            <h3 class="text-xl font-bold mb-4"><i class="fa-solid fa-lock mr-2 text-gray-500"></i>관리자 로그인</h3>
+            <input type="password" id="admin-pwd" class="w-full border border-gray-300 rounded-lg p-2 mb-4 text-center focus:outline-none focus:border-blue-500" placeholder="비밀번호 입력">
+            <div class="flex space-x-2">
+                <button onclick="document.getElementById('admin-login-modal').classList.add('hidden')" class="w-1/2 bg-gray-200 text-gray-800 py-2 rounded-lg font-bold">취소</button>
+                <button onclick="checkAdminPassword()" class="w-1/2 bg-blue-600 text-white py-2 rounded-lg font-bold">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 내용 수정 모달 -->
+    <div id="admin-edit-modal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg">
+            <h3 class="text-xl font-bold mb-4">규칙 내용 수정</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">설명글</label>
+                    <div class="editor-toolbar mb-1 flex space-x-1">
+                        <button onclick="formatText('bold')" title="굵게"><b>B</b></button>
+                        <button onclick="formatText('italic')" title="기울임"><i>I</i></button>
+                        <button onclick="formatText('underline')" title="밑줄"><u>U</u></button>
+                        <span class="text-gray-300">|</span>
+                        <select onchange="formatText('foreColor', this.value)" class="text-xs p-1 border rounded bg-gray-50" title="글자색">
+                            <option value="">색상</option>
+                            <option value="#E31837" style="color: #E31837; font-weight: bold;">빨강</option>
+                            <option value="#002D72" style="color: #002D72; font-weight: bold;">파랑</option>
+                            <option value="#4CAF50" style="color: #4CAF50; font-weight: bold;">초록</option>
+                            <option value="#000000" style="color: #000000; font-weight: bold;">검정</option>
+                        </select>
+                    </div>
+                    <div id="edit-description" contenteditable="true" class="custom-editor w-full text-sm"></div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">핵심 포인트 (엔터로 줄바꿈)</label>
+                    <textarea id="edit-points" rows="4" class="w-full border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 mt-6">
+                <button onclick="document.getElementById('admin-edit-modal').classList.add('hidden')" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-bold">취소</button>
+                <button onclick="saveRuleDetails()" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">저장하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const styleSheet = document.createElement("style");
+        document.head.appendChild(styleSheet);
+
+        // 카테고리 이름 고정
+        const FORCE_CATEGORY = '다음 주자가 밀어내서 무조건 진루해야하는 상황';
+        const TAG_CATEGORY = '진루 의무가 없어 반드시 신체를 태그해야하는 상황';
+
+        let rulesData = [
+            // --- 일반 규칙 ---
+            {
+                id: 'basic-hit', category: '타자/주자 규칙', title: '단타 (1루타, Single)', icon: 'fa-person-running',
+                description: '타자가 공을 쳐서 페어 지역에 떨어뜨린 후, 수비수가 공을 1루에 던지기 전에 1루 베이스에 안전하게 도착하는 상황입니다. 가장 기본적인 안타입니다.',
+                points: ['타구된 공이 파울 라인 밖으로 벗어나기 전에 땅에 닿아야 합니다.', '수비수의 실책(에러) 없이 타자의 온전한 힘과 스피드로 진루한 경우에만 안타로 인정됩니다.'],
+                minimap: {
+                    defenders: [ { id: 'rf', label: 'RF', pos: 'left: 85%; bottom: 75%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes animSingleBall { 
+                            0% { left: 50%; bottom: 15%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 
+                            30% { left: 75%; bottom: 55%; transform: translate(-50%, 50%) scale(2); opacity: 1; } 
+                            50% { left: 82%; bottom: 65%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 
+                            50.1% { opacity: 0; } 
+                            100% { opacity: 0; } 
+                        } 
+                        @keyframes animSingleBatter { 
+                            0% { left: 50%; bottom: 15%; } 
+                            80% { left: 75%; bottom: 40%; } 
+                            100% { left: 75%; bottom: 40%; } 
+                        } 
+                        @keyframes animSingleDef { 
+                            0% { left: 85%; bottom: 75%; } 
+                            10% { left: 85%; bottom: 75%; } 
+                            50% { left: 82%; bottom: 65%; } 
+                            100% { left: 82%; bottom: 65%; } 
+                        } 
+                    `,
+                    ballAnim: 'animSingleBall', runnerAnims: { 'batter': 'animSingleBatter' }, defAnims: { 'rf': 'animSingleDef' },
+                    popups: [ { type: 'SAFE', pos: 'left: 75%; bottom: 40%;', delay: 2.4 } ],
+                    hasBallTimers: [ { defId: 'rf', addAt: 0.5, removeAt: 1.0 } ]
+                }
+            },
+            {
+                id: 'basic-foul', category: '타자/주자 규칙', title: '파울 (Foul Ball)', icon: 'fa-xmark',
+                description: '타자가 친 공이 1루와 3루를 잇는 파울 라인 바깥쪽 지역으로 떨어지거나 나가는 상황입니다.',
+                points: ['2스트라이크 이전이라면 스트라이크 카운트가 1개 올라갑니다.', '이미 2스트라이크 상태라면 파울을 쳐도 삼진이 되지 않고 타격 기회가 다시 주어집니다 (번트 파울 제외).', '파울이 선언되면 플레이가 멈추고 타자와 주자는 원래 자리로 돌아가야 합니다.'],
+                minimap: {
+                    defenders: [ { id: '3b', label: '3B', pos: 'left: 25%; bottom: 40%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animFoulBall { 0% { left: 50%; bottom: 15%; opacity:1; } 50% { left: 10%; bottom: 35%; opacity:1; } 100% { left: 5%; bottom: 40%; opacity:1; } } @keyframes animFoulBatter { 0% { left: 50%; bottom: 15%; } 40% { left: 55%; bottom: 20%; } 100% { left: 50%; bottom: 15%; } } `,
+                    ballAnim: 'animFoulBall', runnerAnims: { 'batter': 'animFoulBatter' },
+                    popups: [ { type: '파울!', pos: 'left: 10%; bottom: 35%;', delay: 1.5 } ]
+                }
+            },
+            {
+                id: 'fly-out', category: '아웃 규칙', title: '플라이 아웃 (Fly Out)', icon: 'fa-baseball',
+                description: '타자가 친 공이 땅에 닿기 전에 수비수가 직접 글러브로 잡는 상황입니다. 내야와 외야 어디서든 공중에 뜬 공을 잡으면 아웃됩니다.',
+                points: ['수비수가 공을 글러브로 완벽하게 잡는 순간 타자는 아웃됩니다.', '플라이 아웃 시 주자들은 무조건 원래 출발했던 베이스로 한 번 되돌아가서 밟아야(리터치) 합니다.'],
+                minimap: {
+                    defenders: [ { id: 'cf', label: 'CF', pos: 'left: 50%; bottom: 75%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animFlyBall { 0% { left: 50%; bottom: 15%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 50% { left: 50%; bottom: 45%; transform: translate(-50%, 50%) scale(3); opacity: 1; } 99.9% { left: 50%; bottom: 75%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 100% { opacity: 0; } } @keyframes animFlyBatter { 0% { left: 50%; bottom: 15%; } 100% { left: 65%; bottom: 30%; } } `,
+                    ballAnim: 'animFlyBall', runnerAnims: { 'batter': 'animFlyBatter' },
+                    popups: [ { type: '캐치! OUT', pos: 'left: 50%; bottom: 75%;', delay: 2.9 } ],
+                    hasBallTimers: [ { defId: 'cf', addAt: 1.0, removeAt: 1.5 } ],
+                    onEnd: () => { document.getElementById('runner-batter').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'interference', category: '아웃 규칙', title: '수비 방해 (타구에 맞음)', icon: 'fa-ban',
+                description: '주자가 내야수(투수 제외)를 통과하기 전에 페어 지역에서 타구에 맞았을 경우 선언됩니다. 타구에 맞은 주자는 즉시 아웃되며, 타자는 1루로 진루합니다.',
+                points: ['타구에 맞은 주자는 아웃 처리됩니다.', '공은 데드볼(볼 데드)이 되어 모든 플레이가 멈춥니다.', '타자는 1루로 진루하며, 다른 주자들은 강제 진루 상황이 아니면 원래 베이스로 돌아가야 합니다.'],
+                minimap: {
+                    defenders: [ { id: '2b', label: '2B', pos: 'left: 60%; bottom: 55%;' }, { id: '1b', label: '1B', pos: 'left: 75%; bottom: 40%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animIntBall { 0% { left: 50%; bottom: 15%; opacity: 1; } 50% { left: 62%; bottom: 53%; opacity: 1; } 100% { left: 62%; bottom: 53%; opacity: 1; } } @keyframes animIntR1 { 0% { left: 75%; bottom: 40%; } 50% { left: 62%; bottom: 53%; } 100% { left: 62%; bottom: 53%; } } @keyframes animIntBatter { 0% { left: 50%; bottom: 15%; } 50% { left: 62%; bottom: 27%; } 100% { left: 75%; bottom: 40%; } } `,
+                    ballAnim: 'animIntBall', runnerAnims: { 'r1': 'animIntR1', 'batter': 'animIntBatter' },
+                    popups: [ { type: '수비 방해! OUT', pos: 'left: 62%; bottom: 53%;', delay: 1.5 } ],
+                    onEnd: () => { document.getElementById('runner-r1').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'ground-rule-double', category: '타자/주자 규칙', title: '인정 2루타 (원바운드 담장)', icon: 'fa-angles-right',
+                description: '타자가 친 공이 페어 지역(그라운드)에 한 번 튀긴 후, 담장을 넘어간 경우입니다. 타자와 그라운드에 있던 모든 주자에게 2개의 베이스 진루권이 주어집니다.',
+                points: ['공이 담장을 넘어가면 즉시 볼 데드(플레이 정지)가 됩니다.', '타자는 2루까지 안전하게 진루합니다.', '1루 주자는 3루까지 진루하게 됩니다.'],
+                minimap: {
+                    defenders: [ { id: 'cf', label: 'CF', pos: 'left: 50%; bottom: 75%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animGrdBall { 0% { left: 50%; bottom: 15%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 30% { left: 50%; bottom: 50%; transform: translate(-50%, 50%) scale(3); opacity: 1; } 50% { left: 50%; bottom: 85%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 65% { left: 50%; bottom: 88%; transform: translate(-50%, 50%) scale(1.5); opacity: 1; } 80% { left: 50%; bottom: 105%; transform: translate(-50%, 50%) scale(1); opacity: 1; } 100% { left: 50%; bottom: 105%; transform: translate(-50%, 50%) scale(1); opacity: 1; } } @keyframes animGrdBatter { 0% { left: 50%; bottom: 15%; } 50% { left: 75%; bottom: 40%; } 100% { left: 50%; bottom: 65%; } } @keyframes animGrdR1 { 0% { left: 75%; bottom: 40%; } 50% { left: 50%; bottom: 65%; } 100% { left: 25%; bottom: 40%; } } `,
+                    ballAnim: 'animGrdBall', runnerAnims: { 'batter': 'animGrdBatter', 'r1': 'animGrdR1' },
+                    popups: [ { type: '바운드!', pos: 'left: 50%; bottom: 85%;', delay: 1.5 }, { type: '인정 2루타!', pos: 'left: 50%; bottom: 88%;', delay: 2.4 } ]
+                }
+            },
+            {
+                id: 'tag-up', category: '타자/주자 규칙', title: '태그업 (성공)', icon: 'fa-shoe-prints',
+                description: '타자가 친 공이 수비수에게 잡혀 플라이 아웃이 되었을 때, 주자가 원래 있던 베이스를 다시 밟은 후(리터치) 다음 베이스로 진루할 수 있는 규칙입니다.',
+                points: ['수비수가 공을 "글러브에 터치하는 순간"부터 주자는 베이스에서 발을 떼고 뛸 수 있습니다.'],
+                minimap: {
+                    defenders: [ { id: 'lf', label: 'LF', pos: 'left: 20%; bottom: 75%;' } ],
+                    runners: [ { id: 'r3', start: 'left: 25%; bottom: 40%;' } ],
+                    extras: [ { id: 'glove', content: '🧤', pos: 'left: 20%; bottom: 75%; opacity: 0;' }, { id: 'shoe', content: '👟', pos: 'left: 25%; bottom: 40%; opacity: 0;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animTagUpBall { 0% { left: 50%; bottom: 15%; transform: scale(1); opacity: 1; } 50% { left: 20%; bottom: 75%; transform: scale(3); opacity: 1; } 55% { left: 20%; bottom: 75%; transform: scale(1); opacity: 1; } 100% { left: 20%; bottom: 75%; opacity: 1; } } @keyframes animTagUpRunner { 0% { left: 25%; bottom: 40%; } 55% { left: 25%; bottom: 40%; } 100% { left: 50%; bottom: 15%; } } @keyframes animGlovePopup { 0% { opacity:0; } 5% { opacity:1; transform:translate(-50%, 50%) scale(1.5); } 30% { opacity:1; transform:translate(-50%, 50%) scale(1); } 100% { opacity:0; } } `,
+                    ballAnim: 'animTagUpBall', runnerAnims: { 'r3': 'animTagUpRunner' }, extraAnims: { 'glove': 'animGlovePopup', 'shoe': 'animGlovePopup' }, extraDelays: { 'glove': 1.65, 'shoe': 1.7 },
+                    popups: [ { type: '캐치!', pos: 'left: 20%; bottom: 75%;', delay: 1.65 }, { type: '출발!', pos: 'left: 25%; bottom: 40%;', delay: 1.7 }, { type: 'SAFE', pos: 'left: 50%; bottom: 15%;', delay: 3.0 } ]
+                }
+            },
+            {
+                id: 'tag-up-fail', category: '타자/주자 규칙', title: '태그업 (실패 - 리터치 위반)', icon: 'fa-person-falling-burst',
+                description: '플라이 아웃 상황에서 주자가 수비수가 공을 잡기도 전에 베이스에서 발을 떼고 출발한 경우입니다. 수비팀이 이를 심판에게 어필하면 주자도 아웃됩니다.',
+                points: ['반드시 수비수가 공을 잡은 후에 출발해야 합니다.', '공을 잡기 전에 출발하면, 다시 원래 베이스로 돌아와서 터치한 후 출발해야 합니다.', '돌아오지 않고 계속 뛰다가 수비수가 공을 잡고 원래 베이스를 터치하면 아웃됩니다.'],
+                minimap: {
+                    customDur: 5.0,
+                    defenders: [ { id: 'lf', label: 'LF', pos: 'left: 20%; bottom: 75%;' }, { id: '3b', label: '3B', pos: 'left: 25%; bottom: 40%;' } ],
+                    runners: [ { id: 'r3', start: 'left: 25%; bottom: 40%;' } ],
+                    extras: [ { id: 'glove', content: '🧤', pos: 'left: 20%; bottom: 75%; opacity: 0;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` @keyframes animTagUpFailBall { 0% { left: 50%; bottom: 15%; transform: scale(1); opacity: 1; } 40% { left: 20%; bottom: 75%; transform: scale(3); opacity: 1; } 50% { left: 20%; bottom: 75%; transform: scale(1); opacity: 1; } 70% { left: 25%; bottom: 40%; transform: scale(1); opacity: 1; } 100% { left: 25%; bottom: 40%; transform: scale(1); opacity: 1; } } @keyframes animTagUpFailRunner { 0% { left: 25%; bottom: 40%; } 30% { left: 35%; bottom: 30%; } 50% { left: 45%; bottom: 20%; } 70% { left: 45%; bottom: 20%; } 100% { left: 45%; bottom: 20%; } } @keyframes animGlovePopupFail { 0% { opacity:0; } 5% { opacity:1; transform:translate(-50%, 50%) scale(1.5); } 30% { opacity:1; transform:translate(-50%, 50%) scale(1); } 100% { opacity:0; } } `,
+                    ballAnim: 'animTagUpFailBall', runnerAnims: { 'r3': 'animTagUpFailRunner' }, extraAnims: { 'glove': 'animGlovePopupFail' }, extraDelays: { 'glove': 2.5 },
+                    popups: [ { type: '출발! (너무 빠름)', pos: 'left: 30%; bottom: 35%;', delay: 1.5 }, { type: '캐치!', pos: 'left: 20%; bottom: 75%;', delay: 2.5 }, { type: 'OUT (어필)', pos: 'left: 25%; bottom: 40%;', delay: 3.5 } ],
+                    onEnd: () => { document.getElementById('runner-r3').classList.add('out-state'); }
+                }
+            },
+
+            // --- 포스 아웃 5가지 ---
+            {
+                id: 'force-1', category: FORCE_CATEGORY, title: '포스 아웃 상황 1 (타자만)', icon: 'fa-1',
+                description: '주자가 없는 상황에서 타자가 땅볼을 치면, 타자는 무조건 1루로 뛰어야 하는 <b>진루 의무</b>가 생깁니다. 1루수가 공을 잡고 타자보다 먼저 1루 베이스를 밟으면 포스 아웃입니다.',
+                points: ['타자에게는 1루로 가야 할 강제 진루 의무가 있습니다.', '수비수는 1루 베이스만 밟아도 타자를 아웃시킬 수 있습니다.'],
+                minimap: {
+                    defenders: [ { id: 'ss', label: 'SS', pos: 'left: 35%; bottom: 55%;' }, { id: '1b', label: '1B', pos: 'left: 75%; bottom: 40%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes f1Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 35%; bottom: 55%; opacity: 1; } 30.1% { opacity: 0; } 49.9% { opacity: 0; } 50% { left: 35%; bottom: 55%; opacity: 1; } 70% { left: 75%; bottom: 40%; opacity: 1; } 70.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes f1Batter { 0% { left: 50%; bottom: 15%; } 90% { left: 65%; bottom: 30%; } 100% { left: 65%; bottom: 30%; } } 
+                    `,
+                    ballAnim: 'f1Ball', runnerAnims: { 'batter': 'f1Batter' },
+                    popups: [ { type: '베이스 밟음! OUT', pos: 'left: 75%; bottom: 40%;', delay: 2.1 } ],
+                    hasBallTimers: [ { defId: 'ss', addAt: 0.3, removeAt: 0.5 }, { defId: '1b', addAt: 0.7, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-batter').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'force-2', category: FORCE_CATEGORY, title: '포스 아웃 상황 2 (주자 1루)', icon: 'fa-2',
+                description: '주자 1루 상황입니다. 타자가 치면 타자는 1루로 달려오기 때문에, 원래 1루에 있던 주자는 무조건 2루로 밀려나야(도망가야) 합니다. 2루수가 베이스를 밟아 포스 아웃을 시키는 장면입니다.',
+                points: ['1루 주자는 2루로 무조건 뛰어야 하는 진루 의무가 생깁니다.', '2루로 향하는 주자는 몸을 태그할 필요 없이 베이스만 밟으면 아웃입니다.'],
+                minimap: {
+                    defenders: [ { id: 'ss', label: 'SS', pos: 'left: 35%; bottom: 55%;' }, { id: '2b', label: '2B', pos: 'left: 50%; bottom: 65%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes f2Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 35%; bottom: 55%; opacity: 1; } 30.1% { opacity: 0; } 49.9% { opacity: 0; } 50% { left: 35%; bottom: 55%; opacity: 1; } 70% { left: 50%; bottom: 65%; opacity: 1; } 70.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes f2Batter { 0% { left: 50%; bottom: 15%; } 90% { left: 68%; bottom: 33%; } 100% { left: 68%; bottom: 33%; } } 
+                        @keyframes f2R1 { 0% { left: 75%; bottom: 40%; } 90% { left: 55%; bottom: 60%; } 100% { left: 55%; bottom: 60%; } }
+                    `,
+                    ballAnim: 'f2Ball', runnerAnims: { 'batter': 'f2Batter', 'r1': 'f2R1' },
+                    popups: [ { type: '2루 베이스 밟음! OUT', pos: 'left: 50%; bottom: 65%;', delay: 2.1 } ],
+                    hasBallTimers: [ { defId: 'ss', addAt: 0.3, removeAt: 0.5 }, { defId: '2b', addAt: 0.7, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r1').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'force-3', category: FORCE_CATEGORY, title: '포스 아웃 상황 3 (주자 1, 2루)', icon: 'fa-3',
+                description: '주자 1, 2루 상황입니다. 타자가 치면 1루 주자는 2루로, 2루 주자는 3루로 연쇄적으로 밀려납니다. 3루수가 땅볼을 잡아 직접 3루 베이스를 밟아 2루 주자를 포스 아웃 시킵니다.',
+                points: ['뒷 주자가 밀어내어 모든 주자에게 진루 의무가 발생합니다.', '3루수는 공을 잡고 3루 베이스만 밟으면 아웃을 만들어낼 수 있습니다.'],
+                minimap: {
+                    defenders: [ { id: '3b', label: '3B', pos: 'left: 25%; bottom: 40%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' }, { id: 'r2', start: 'left: 50%; bottom: 65%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes f3Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 40% { left: 25%; bottom: 40%; opacity: 1; } 40.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes f3Batter { 0% { left: 50%; bottom: 15%; } 80% { left: 68%; bottom: 33%; } 100% { left: 68%; bottom: 33%; } } 
+                        @keyframes f3R1 { 0% { left: 75%; bottom: 40%; } 80% { left: 55%; bottom: 60%; } 100% { left: 55%; bottom: 60%; } }
+                        @keyframes f3R2 { 0% { left: 50%; bottom: 65%; } 80% { left: 30%; bottom: 45%; } 100% { left: 30%; bottom: 45%; } }
+                    `,
+                    ballAnim: 'f3Ball', runnerAnims: { 'batter': 'f3Batter', 'r1': 'f3R1', 'r2': 'f3R2' },
+                    popups: [ { type: '3루 베이스 밟음! OUT', pos: 'left: 20%; bottom: 35%;', delay: 1.2 } ],
+                    hasBallTimers: [ { defId: '3b', addAt: 0.4, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r2').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'force-4', category: FORCE_CATEGORY, title: '포스 아웃 상황 4 (주자 1, 3루)', icon: 'fa-4',
+                description: '주자 1, 3루 상황입니다. 타자가 치면 1루 주자는 2루로 강제로 밀려납니다. (3루 주자는 홈으로 뛸 의무는 없지만 득점을 위해 뜁니다.) 수비수가 2루로 던져 1루 주자를 포스 아웃 시킵니다.',
+                points: ['1루 주자는 밀려나기 때문에 2루에서 포스 아웃이 가능합니다.', '참고: 3루 주자는 밀어내는 뒷 주자가 없으므로 홈에서는 반드시 태그해야 합니다.'],
+                minimap: {
+                    defenders: [ { id: 'ss', label: 'SS', pos: 'left: 40%; bottom: 50%;' }, { id: '2b', label: '2B', pos: 'left: 50%; bottom: 65%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' }, { id: 'r3', start: 'left: 25%; bottom: 40%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes f4Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 40%; bottom: 50%; opacity: 1; } 30.1% { opacity: 0; } 49.9% { opacity: 0; } 50% { left: 40%; bottom: 50%; opacity: 1; } 70% { left: 50%; bottom: 65%; opacity: 1; } 70.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes f4Batter { 0% { left: 50%; bottom: 15%; } 90% { left: 68%; bottom: 33%; } 100% { left: 68%; bottom: 33%; } } 
+                        @keyframes f4R1 { 0% { left: 75%; bottom: 40%; } 90% { left: 55%; bottom: 60%; } 100% { left: 55%; bottom: 60%; } }
+                        @keyframes f4R3 { 0% { left: 25%; bottom: 40%; } 90% { left: 45%; bottom: 20%; } 100% { left: 45%; bottom: 20%; } }
+                    `,
+                    ballAnim: 'f4Ball', runnerAnims: { 'batter': 'f4Batter', 'r1': 'f4R1', 'r3': 'f4R3' },
+                    popups: [ { type: '2루 베이스 밟음! OUT', pos: 'left: 50%; bottom: 65%;', delay: 2.1 } ],
+                    hasBallTimers: [ { defId: 'ss', addAt: 0.3, removeAt: 0.5 }, { defId: '2b', addAt: 0.7, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r1').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'force-5', category: FORCE_CATEGORY, title: '포스 아웃 상황 5 (만루)', icon: 'fa-5',
+                description: '베이스가 꽉 찬 만루 상황입니다. 타자가 치는 순간 1루->2루->3루->홈으로 모든 주자가 밀려납니다. 투수가 공을 잡아 포수에게 던지면, 포수는 홈 플레이트만 밟아도 3루 주자를 아웃시킬 수 있습니다.',
+                points: ['모든 베이스가 꽉 차면 모든 주자에게 강제 진루 의무가 생깁니다.', '포수는 주자를 태그할 필요 없이 홈 플레이트만 밟고 공을 받으면 됩니다.'],
+                minimap: {
+                    defenders: [ { id: 'p', label: 'P', pos: 'left: 50%; bottom: 40%;' }, { id: 'c', label: 'C', pos: 'left: 50%; bottom: 15%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 45%; bottom: 10%;' }, { id: 'r1', start: 'left: 75%; bottom: 40%;' }, { id: 'r2', start: 'left: 50%; bottom: 65%;' }, { id: 'r3', start: 'left: 25%; bottom: 40%;' } ],
+                    ballStart: 'left: 45%; bottom: 10%;',
+                    animKeyframes: ` 
+                        @keyframes f5Ball { 0% { left: 45%; bottom: 10%; opacity: 1; } 30% { left: 50%; bottom: 40%; opacity: 1; } 30.1% { opacity: 0; } 49.9% { opacity: 0; } 50% { left: 50%; bottom: 40%; opacity: 1; } 70% { left: 50%; bottom: 15%; opacity: 1; } 70.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes f5Batter { 0% { left: 45%; bottom: 10%; } 90% { left: 65%; bottom: 30%; } 100% { left: 65%; bottom: 30%; } } 
+                        @keyframes f5R1 { 0% { left: 75%; bottom: 40%; } 90% { left: 55%; bottom: 60%; } 100% { left: 55%; bottom: 60%; } }
+                        @keyframes f5R2 { 0% { left: 50%; bottom: 65%; } 90% { left: 30%; bottom: 45%; } 100% { left: 30%; bottom: 45%; } }
+                        @keyframes f5R3 { 0% { left: 25%; bottom: 40%; } 90% { left: 45%; bottom: 20%; } 100% { left: 45%; bottom: 20%; } }
+                    `,
+                    ballAnim: 'f5Ball', runnerAnims: { 'batter': 'f5Batter', 'r1': 'f5R1', 'r2': 'f5R2', 'r3': 'f5R3' },
+                    popups: [ { type: '홈 밟음! OUT', pos: 'left: 50%; bottom: 15%;', delay: 2.1 } ],
+                    hasBallTimers: [ { defId: 'p', addAt: 0.3, removeAt: 0.5 }, { defId: 'c', addAt: 0.7, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r3').classList.add('out-state'); }
+                }
+            },
+            
+            // --- 태그 아웃 4가지 ---
+            {
+                id: 'tag-1', category: TAG_CATEGORY, title: '태그 아웃 상황 1 (도루)', icon: 'fa-bolt',
+                description: '1루가 비어있는 상태에서 2루 주자가 3루로 도루를 시도합니다. 내 뒤에서 밀려오는 주자가 없으므로 뛰어야 할 의무가 없습니다. 스스로 뛴 것이므로 3루수는 반드시 <b>주자의 몸을 공으로 터치(태그)</b>해야 합니다.',
+                points: ['진루 의무가 없는 주자(도루, 견제 등)는 베이스만 밟아서는 아웃시킬 수 없습니다.', '주자의 몸 어디든 공을 쥔 손/글러브가 닿아야 아웃입니다.'],
+                minimap: {
+                    defenders: [ { id: 'c', label: 'C', pos: 'left: 50%; bottom: 15%;' }, { id: '3b', label: '3B', pos: 'left: 25%; bottom: 40%;' } ],
+                    runners: [ { id: 'r2', start: 'left: 50%; bottom: 65%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes t1Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 25%; bottom: 40%; opacity: 1; } 30.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes t1Runner { 0% { left: 50%; bottom: 65%; } 80% { left: 30%; bottom: 45%; } 100% { left: 30%; bottom: 45%; } } 
+                        @keyframes t1Def { 0% { left: 25%; bottom: 40%; } 30% { left: 25%; bottom: 40%; } 60% { left: 28%; bottom: 43%; } 100% { left: 28%; bottom: 43%; } }
+                    `,
+                    ballAnim: 't1Ball', runnerAnims: { 'r2': 't1Runner' }, defAnims: { '3b': 't1Def' },
+                    popups: [ { type: '직접 태그! OUT', pos: 'left: 30%; bottom: 45%;', delay: 1.8 } ],
+                    hasBallTimers: [ { defId: 'c', addAt: 0.0, removeAt: 0.05 }, { defId: '3b', addAt: 0.3, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r2').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'tag-2', category: TAG_CATEGORY, title: '태그 아웃 상황 2 (추가 진루)', icon: 'fa-angles-right',
+                description: '타자가 안타를 치고 1루를 밟은 후, 욕심을 내서 2루까지 달리는 상황입니다. 1루를 밟는 순간 타자로서의 진루 의무는 끝났고, 2루로 가는 것은 본인의 선택이므로 <b>태그 아웃</b> 대상이 됩니다.',
+                points: ['1루를 안전하게 밟은 시점부터 진루 의무는 사라집니다.', '이후 베이스로 달리는 주자는 무조건 몸을 직접 태그해야 합니다.'],
+                minimap: {
+                    defenders: [ { id: 'rf', label: 'RF', pos: 'left: 80%; bottom: 70%;' }, { id: 'ss', label: 'SS', pos: 'left: 50%; bottom: 65%;' } ],
+                    runners: [ { id: 'batter', start: 'left: 50%; bottom: 15%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes t2Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 80%; bottom: 70%; opacity: 1; } 30.1% { opacity: 0; } 59.9% { opacity: 0; } 60% { left: 80%; bottom: 70%; opacity: 1; } 80% { left: 50%; bottom: 65%; opacity: 1; } 80.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes t2Runner { 0% { left: 50%; bottom: 15%; } 30% { left: 75%; bottom: 40%; } 85% { left: 55%; bottom: 60%; } 100% { left: 55%; bottom: 60%; } } 
+                        @keyframes t2Def { 0% { left: 50%; bottom: 65%; } 80% { left: 50%; bottom: 65%; } 90% { left: 52%; bottom: 63%; } 100% { left: 52%; bottom: 63%; } }
+                    `,
+                    ballAnim: 't2Ball', runnerAnims: { 'batter': 't2Runner' }, defAnims: { 'ss': 't2Def' },
+                    popups: [ { type: '직접 태그! OUT', pos: 'left: 55%; bottom: 60%;', delay: 2.5 } ],
+                    hasBallTimers: [ { defId: 'rf', addAt: 0.3, removeAt: 0.6 }, { defId: 'ss', addAt: 0.8, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-batter').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'tag-3', category: TAG_CATEGORY, title: '태그 아웃 상황 3 (태그업)', icon: 'fa-shoe-prints',
+                description: '주자 3루 상황, 타자가 친 공이 외야 뜬공으로 잡혔습니다. 공이 수비수에게 잡힌 직후, 3루 주자가 홈으로 쇄도합니다. (태그업). 이것 역시 주자 스스로의 판단으로 뛰는 것이므로 포수는 홈을 밟는 것으론 부족하고 주자를 태그해야 합니다.',
+                points: ['외야 플라이 후 뛰는 태그업 상황도 진루 의무가 없는 자발적 플레이입니다.', '따라서 홈에서 접전이 벌어지면 포수는 홈플레이트가 아닌 주자의 몸을 직접 태그해야 합니다.'],
+                minimap: {
+                    defenders: [ { id: 'lf', label: 'LF', pos: 'left: 20%; bottom: 70%;' }, { id: 'c', label: 'C', pos: 'left: 50%; bottom: 15%;' } ],
+                    runners: [ { id: 'r3', start: 'left: 25%; bottom: 40%;' } ],
+                    ballStart: 'left: 50%; bottom: 15%;',
+                    animKeyframes: ` 
+                        @keyframes t3Ball { 0% { left: 50%; bottom: 15%; opacity: 1; } 30% { left: 20%; bottom: 70%; opacity: 1; } 30.1% { opacity: 0; } 59.9% { opacity: 0; } 60% { left: 20%; bottom: 70%; opacity: 1; } 80% { left: 50%; bottom: 15%; opacity: 1; } 80.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes t3Runner { 0% { left: 25%; bottom: 40%; } 30% { left: 25%; bottom: 40%; } 85% { left: 45%; bottom: 20%; } 100% { left: 45%; bottom: 20%; } } 
+                        @keyframes t3Def { 0% { left: 50%; bottom: 15%; } 80% { left: 50%; bottom: 15%; } 90% { left: 48%; bottom: 17%; } 100% { left: 48%; bottom: 17%; } }
+                    `,
+                    ballAnim: 't3Ball', runnerAnims: { 'r3': 't3Runner' }, defAnims: { 'c': 't3Def' },
+                    popups: [ { type: '직접 태그! OUT', pos: 'left: 45%; bottom: 20%;', delay: 2.5 } ],
+                    hasBallTimers: [ { defId: 'lf', addAt: 0.3, removeAt: 0.6 }, { defId: 'c', addAt: 0.8, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r3').classList.add('out-state'); }
+                }
+            },
+            {
+                id: 'tag-4', category: TAG_CATEGORY, title: '태그 아웃 상황 4 (런다운)', icon: 'fa-arrows-left-right',
+                description: '주자가 베이스와 베이스 사이에 갇혀 수비수들 사이에서 앞뒤로 쫓기는 상황(런다운)입니다. 진루 의무 없이 갇힌 상황이므로 수비수들은 공을 서로 던지며 거리를 좁힌 뒤 주자를 직접 태그하여 아웃시킵니다.',
+                points: ['주자를 몰아갈 때도 베이스를 밟는 것으로는 아웃시킬 수 없습니다.', '수비수가 공을 쥐고 주자의 몸을 확실히 태그하는 순간 아웃됩니다.'],
+                minimap: {
+                    defenders: [ { id: '1b', label: '1B', pos: 'left: 75%; bottom: 40%;' }, { id: 'ss', label: 'SS', pos: 'left: 50%; bottom: 65%;' } ],
+                    runners: [ { id: 'r1', start: 'left: 65%; bottom: 50%;' } ],
+                    ballStart: 'left: 75%; bottom: 40%;',
+                    animKeyframes: ` 
+                        @keyframes t4Ball { 0% { left: 75%; bottom: 40%; opacity: 1; } 15% { left: 50%; bottom: 65%; opacity: 1; } 15.1% { opacity: 0; } 100% { opacity: 0; } } 
+                        @keyframes t4Runner { 0% { left: 65%; bottom: 50%; } 15% { left: 58%; bottom: 57%; } 20% { left: 58%; bottom: 57%; } 70% { left: 70%; bottom: 45%; } 100% { left: 70%; bottom: 45%; } } 
+                        @keyframes t4Def1b { 0% { left: 75%; bottom: 40%; } 100% { left: 75%; bottom: 40%; } }
+                        @keyframes t4DefSs { 0% { left: 50%; bottom: 65%; } 15% { left: 50%; bottom: 65%; } 70% { left: 68%; bottom: 47%; } 100% { left: 68%; bottom: 47%; } }
+                    `,
+                    ballAnim: 't4Ball', runnerAnims: { 'r1': 't4Runner' }, defAnims: { '1b': 't4Def1b', 'ss': 't4DefSs' },
+                    popups: [ { type: '추격 후 태그! OUT', pos: 'left: 70%; bottom: 45%;', delay: 2.1 } ],
+                    hasBallTimers: [ { defId: '1b', addAt: 0.0, removeAt: 0.05 }, { defId: 'ss', addAt: 0.15, removeAt: 1.0 } ],
+                    onEnd: () => { document.getElementById('runner-r1').classList.add('out-state'); }
+                }
+            }
+        ];
+
+        let quizQuestions = [
+            { category: '타자/주자 규칙', question: '타자가 친 공이 페어 지역에 떨어져 1루에 안전하게 도착했습니다. 실책 없이 순수하게 진루했다면?', hint: '수비수의 에러 없이 1루에 도착한 기본적인 안타입니다.', options: [ { text: '파울', isCorrect: false }, { text: '단타 (1루타)', isCorrect: true }, { text: '인정 2루타', isCorrect: false }, { text: '플라이 아웃', isCorrect: false } ] },
+            { category: '아웃 규칙', question: '타자가 친 공이 땅에 닿기 전에 수비수가 직접 글러브로 잡았습니다. 이 상황의 판정은?', hint: '공중에 뜬(Fly) 공을 바로 잡아서 아웃시키는 규칙입니다.', options: [ { text: '파울', isCorrect: false }, { text: '플라이 아웃', isCorrect: true }, { text: '태그 아웃', isCorrect: false }, { text: '포스 아웃', isCorrect: false } ] },
+            { category: '아웃 규칙', question: '타자가 공을 치고 1루로 뜁니다. 수비수가 공을 잡아 1루수에게 던져 타자보다 먼저 1루를 밟았습니다. 이것은 어떤 아웃인가요?', hint: '타자에게는 1루로 뛰어야 할 강제 의무가 생겼습니다.', options: [ { text: '태그 아웃', isCorrect: false }, { text: '인필드 플라이', isCorrect: false }, { text: '포스 아웃', isCorrect: true }, { text: '스트라이크 아웃', isCorrect: false } ] },
+            { category: '아웃 규칙', question: '무사 1루에서 내야 땅볼을 쳐서, 유격수가 2루를 밟고 1루로 던져 주자와 타자를 연속으로 아웃시켰습니다.', hint: '한 번의 플레이로 두 명의 공격수를 연달아 아웃시키는 멋진 수비입니다.', options: [ { text: '병살타 (Double Play)', isCorrect: true }, { text: '런다운', isCorrect: false }, { text: '태그업', isCorrect: false }, { text: '인정 2루타', isCorrect: false } ] },
+            { category: '아웃 규칙', question: '포스 상태가 아닌 주자를 아웃시키기 위해, 수비수가 반드시 공을 쥔 손이나 글러브로 주자를 터치하는 규칙은?', hint: '술래잡기에서 손으로 직접 터치해야 잡히는 것과 같아요.', options: [ { text: '포스 아웃', isCorrect: false }, { text: '수비 방해', isCorrect: false }, { text: '인필드 플라이', isCorrect: false }, { text: '태그 아웃', isCorrect: true } ] },
+            { category: '아웃 규칙', question: '주자가 도루를 시도하다가 내야수를 통과하지 않은 타구에 맞았습니다. 올바른 판정은?', hint: '타구에 맞은 주자는 페널티로 아웃되며, 타자는 1루로 보내줍니다.', options: [ { text: '주자는 그대로 가고 타자는 아웃', isCorrect: false }, { text: '수비 방해로 주자 아웃, 타자는 1루 진루', isCorrect: true }, { text: '투수가 아웃', isCorrect: false }, { text: '볼 데드 선언 후 모두 원래 자리로', isCorrect: false } ] },
+            { category: '타자/주자 규칙', question: '타자가 친 공이 그라운드에 한 번 바운드 된 뒤 담장 밖으로 넘어갔습니다. 이때의 판정은?', hint: '그라운드 룰 더블이라고도 하며, 2개의 베이스 진루권만 주어집니다.', options: [ { text: '홈런', isCorrect: false }, { text: '파울', isCorrect: false }, { text: '인정 2루타', isCorrect: true }, { text: '플라이 아웃', isCorrect: false } ] },
+            { category: '타자/주자 규칙', question: '플라이 타구를 수비수가 잡았을 때, 3루 주자가 홈으로 들어오기 위해 지켜야 할 규칙은?', hint: '수비수의 글러브에 공이 닿는 순간부터 출발해야 합니다.', options: [ { text: '공이 뜨는 순간 바로 뛴다.', isCorrect: false }, { text: '수비수가 공을 잡는 순간, 베이스를 밟고 있다가 출발한다.', isCorrect: true }, { text: '수비수가 공을 놓칠 때까지 기다린다.', isCorrect: false }, { text: '아무 때나 뛸 수 있다.', isCorrect: false } ] },
+            { category: '타자/주자 규칙', question: '플라이 아웃 상황에서 주자가 수비수가 공을 잡기도 전에 베이스에서 발을 떼고 출발했습니다. 수비팀이 어필하면?', hint: '출발이 너무 빨랐기 때문에 규칙 위반입니다.', options: [ { text: '다음 베이스 진루 허용', isCorrect: false }, { text: '다시 원래 자리로 돌아가면 무조건 세이프', isCorrect: false }, { text: '타자에게 경고 조치', isCorrect: false }, { text: '주자 아웃', isCorrect: true } ] }
+        ];
+
+        let currentActiveRule = null;
+        let popupTimeouts = []; 
+        let animLoopTimer = null;
+        
+        // --- 퀴즈 진행을 위한 글로벌 변수 ---
+        window.activeQuizData = [];
+        window.quizStates = [];
+        window.currentQuizIndex = 0;
+        let isAdmin = false;
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-dropdown-menu');
+            const icon = document.getElementById('mobile-menu-icon');
+            if (menu.classList.contains('open')) {
+                menu.classList.remove('open');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                menu.classList.add('open');
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        function initLearningSection() {
+            const pcContainer = document.getElementById('situation-list-pc');
+            const mobileContainer = document.getElementById('mobile-dropdown-menu');
+            
+            pcContainer.innerHTML = '';
+            mobileContainer.innerHTML = '';
+
+            const categories = [
+                { id: 'basic', name: '📂 일반 규칙', color: 'gray' },
+                { id: 'force', name: '📂 포스 아웃되는 상황 <br><span class="text-[10px] font-normal opacity-70">(무조건 진루해야 함)</span>', text: FORCE_CATEGORY, color: 'blue' },
+                { id: 'tag', name: '📂 태그 아웃되는 상황 <br><span class="text-[10px] font-normal opacity-70">(진루하지 않아도 됨)</span>', text: TAG_CATEGORY, color: 'red' }
+            ];
+
+            categories.forEach(cat => {
+                let catRules = [];
+                if(cat.id === 'basic') catRules = rulesData.filter(r => r.category !== FORCE_CATEGORY && r.category !== TAG_CATEGORY);
+                else if(cat.id === 'force') catRules = rulesData.filter(r => r.category === FORCE_CATEGORY);
+                else if(cat.id === 'tag') catRules = rulesData.filter(r => r.category === TAG_CATEGORY);
+
+                if(catRules.length === 0) return;
+
+                const pcWrapper = document.createElement('div');
+                pcWrapper.className = 'w-full flex flex-col mb-4';
+                
+                const pcToggleBtn = document.createElement('button');
+                pcToggleBtn.className = `w-full text-left p-3 rounded-xl bg-${cat.color}-100 hover:bg-${cat.color}-200 text-${cat.color}-900 font-bold flex justify-between items-center transition-colors shadow-sm z-10`;
+                pcToggleBtn.innerHTML = `
+                    <div class="flex items-center text-sm md:text-base leading-snug">
+                        <span>${cat.name}</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-up text-${cat.color}-700 transition-transform duration-300" id="pc-toggle-icon-${cat.id}"></i>
+                `;
+                
+                const pcListContent = document.createElement('div');
+                pcListContent.id = `pc-list-content-${cat.id}`;
+                pcListContent.className = `flex flex-col gap-2 mt-2 overflow-hidden transition-all duration-300 pl-2 border-l-2 border-${cat.color}-200 ml-2`;
+                
+                pcToggleBtn.onclick = () => {
+                    const icon = document.getElementById(`pc-toggle-icon-${cat.id}`);
+                    if (pcListContent.style.maxHeight === '0px') {
+                        pcListContent.style.maxHeight = pcListContent.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        pcListContent.style.maxHeight = '0px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                };
+                
+                pcWrapper.appendChild(pcToggleBtn);
+                pcWrapper.appendChild(pcListContent);
+                pcContainer.appendChild(pcWrapper);
+
+                const mobileWrapper = document.createElement('div');
+                mobileWrapper.className = 'w-full flex flex-col border-b border-gray-100 last:border-0';
+                
+                const mobileToggleBtn = document.createElement('button');
+                mobileToggleBtn.className = `w-full text-left p-3 bg-${cat.color}-50 text-${cat.color}-900 font-bold flex justify-between items-center`;
+                mobileToggleBtn.innerHTML = `
+                    <div class="flex items-center text-sm leading-snug">
+                        <span>${cat.name}</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-up text-${cat.color}-700 transition-transform duration-300" id="mobile-toggle-icon-${cat.id}"></i>
+                `;
+                
+                const mobileListContent = document.createElement('div');
+                mobileListContent.id = `mobile-list-content-${cat.id}`;
+                mobileListContent.className = 'flex flex-col divide-y divide-gray-50 overflow-hidden transition-all duration-300 bg-white';
+                
+                mobileToggleBtn.onclick = () => {
+                    const icon = document.getElementById(`mobile-toggle-icon-${cat.id}`);
+                    if (mobileListContent.style.maxHeight === '0px') {
+                        mobileListContent.style.maxHeight = mobileListContent.scrollHeight + 'px';
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        mobileListContent.style.maxHeight = '0px';
+                        icon.style.transform = 'rotate(180deg)';
+                    }
+                };
+
+                mobileWrapper.appendChild(mobileToggleBtn);
+                mobileWrapper.appendChild(mobileListContent);
+                mobileContainer.appendChild(mobileWrapper);
+                
+                catRules.forEach(rule => {
+                    const btnColor = cat.id === 'basic' ? 'gray' : cat.color;
+
+                    const btnPc = document.createElement('button');
+                    btnPc.className = `text-left w-full shrink-0 p-3 rounded-xl hover:bg-${btnColor}-600 hover:text-white transition-all bg-white border border-gray-100 shadow-sm flex items-center group cursor-pointer rule-btn-${rule.id}`;
+                    btnPc.onclick = () => { showRuleDetails(rule.id); };
+                    btnPc.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-gray-100 group-hover:bg-white flex items-center justify-center mr-3 shrink-0 transition-colors">
+                            <i class="fa-solid ${rule.icon} text-gray-500 group-hover:text-${btnColor}-600 text-sm"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="font-bold text-sm text-gray-800 group-hover:text-white truncate">${rule.title}</div>
+                        </div>`;
+                    pcListContent.appendChild(btnPc);
+
+                    const btnMobile = document.createElement('button');
+                    btnMobile.className = `w-full text-left p-3 hover:bg-${btnColor}-50 transition-colors flex items-center group pl-8 mobile-rule-btn-${rule.id}`;
+                    btnMobile.onclick = () => {
+                        showRuleDetails(rule.id);
+                        toggleMobileMenu();
+                    };
+                    btnMobile.innerHTML = `
+                        <i class="fa-solid ${rule.icon} w-5 text-center text-gray-400 group-hover:text-${btnColor}-500 mr-2 text-xs"></i>
+                        <div class="text-sm font-bold text-gray-800 leading-none truncate">${rule.title}</div>
+                    `;
+                    mobileListContent.appendChild(btnMobile);
+                });
+
+                setTimeout(() => {
+                    pcListContent.style.maxHeight = pcListContent.scrollHeight + 'px';
+                    mobileListContent.style.maxHeight = mobileListContent.scrollHeight + 'px';
+                }, 50);
+            });
+
+            showRuleDetails(rulesData[0].id);
+        }
+
+        function showRuleDetails(ruleId) {
+            document.querySelectorAll('#situation-list-pc button.group').forEach(btn => btn.classList.remove('ring-2', 'ring-blue-600', 'bg-blue-50', 'ring-red-600', 'bg-red-50', 'ring-gray-600', 'bg-gray-50'));
+            document.querySelectorAll('#mobile-dropdown-menu button.group').forEach(btn => btn.classList.remove('bg-blue-50', 'bg-red-50', 'bg-gray-50'));
+            
+            currentActiveRule = rulesData.find(r => r.id === ruleId);
+            
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('detail-view').classList.remove('hidden');
+            document.getElementById('detail-view').classList.add('flex');
+
+            let activeColor = 'gray';
+            if (currentActiveRule.category === FORCE_CATEGORY) activeColor = 'blue';
+            if (currentActiveRule.category === TAG_CATEGORY) activeColor = 'red';
+
+            const activePcBtn = document.querySelector(`.rule-btn-${ruleId}`);
+            if (activePcBtn) activePcBtn.classList.add('ring-2', `ring-${activeColor}-600`, `bg-${activeColor}-50`);
+
+            const activeMobileBtn = document.querySelector(`.mobile-rule-btn-${ruleId}`);
+            if (activeMobileBtn) activeMobileBtn.classList.add(`bg-${activeColor}-50`);
+            
+            const catBadge = document.getElementById('detail-category');
+            catBadge.textContent = currentActiveRule.category;
+            catBadge.className = `px-2 py-1 rounded text-xs font-bold tracking-wider ${activeColor === 'red' ? 'bg-red-100 text-red-800' : (activeColor === 'blue' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800')}`;
+
+            document.getElementById('detail-title').textContent = currentActiveRule.title;
+            document.getElementById('detail-description').innerHTML = currentActiveRule.description;
+            document.getElementById('mobile-current-rule-title').textContent = currentActiveRule.title;
+            
+            const pointsContainer = document.getElementById('detail-points');
+            pointsContainer.innerHTML = '';
+            currentActiveRule.points.forEach(point => {
+                pointsContainer.innerHTML += `<li><i class="fa-solid fa-check text-green-500 mr-1.5"></i>${point}</li>`;
+            });
+            document.getElementById('points-box').style.display = 'block';
+
+            initMinimap(currentActiveRule);
+            updateAdminUI();
+        }
+
+        function initMinimap(rule) {
+            if(animLoopTimer) clearTimeout(animLoopTimer);
+            popupTimeouts.forEach(clearTimeout); popupTimeouts = [];
+            const container = document.getElementById('minimap-elements');
+            container.innerHTML = ''; 
+
+            const ball = document.createElement('div'); ball.className = 'minimap-ball'; ball.id = 'anim-ball'; container.appendChild(ball);
+            
+            if(rule.minimap.defenders) {
+                rule.minimap.defenders.forEach(d => {
+                    const el = document.createElement('div'); el.className = 'minimap-defender'; el.id = 'def-' + d.id;
+                    el.innerHTML = `<span>🐻</span><span class="minimap-defender-label">${d.label}</span>`; el.style.cssText = d.pos; container.appendChild(el);
+                });
+            }
+            if(rule.minimap.runners) {
+                rule.minimap.runners.forEach(r => {
+                    const el = document.createElement('div'); el.className = 'minimap-runner';
+                    el.id = 'runner-' + r.id; el.innerHTML = '<span>🐯</span>'; el.style.cssText = r.start; container.appendChild(el);
+                });
+            }
+            if(rule.minimap.extras) {
+                rule.minimap.extras.forEach(ex => {
+                    const el = document.createElement('div'); el.className = 'minimap-extra';
+                    el.id = 'extra-' + ex.id; el.innerHTML = ex.content; el.style.cssText = ex.pos; container.appendChild(el);
+                });
+            }
+            setTimeout(() => playMinimapAnimation(), 100);
+        }
+
+        function playMinimapAnimation() {
+            if(!currentActiveRule) return;
+            if(animLoopTimer) clearTimeout(animLoopTimer);
+            popupTimeouts.forEach(clearTimeout); popupTimeouts = [];
+            
+            document.querySelectorAll('.out-state').forEach(el => el.classList.remove('out-state'));
+            document.querySelectorAll('.minimap-popup').forEach(el => el.remove());
+            document.querySelectorAll('.minimap-defender').forEach(el => el.classList.remove('defender-has-ball'));
+
+            const foulLeft = document.getElementById('foul-zone-left'); const foulRight = document.getElementById('foul-zone-right');
+            const foulTextLeft = document.getElementById('foul-text-left'); const foulTextRight = document.getElementById('foul-text-right');
+
+            if (foulLeft && foulRight) {
+                if (currentActiveRule.id === 'basic-foul') {
+                    foulLeft.style.display = 'block'; foulRight.style.display = 'block';
+                    if(foulTextLeft) foulTextLeft.style.display = 'block'; if(foulTextRight) foulTextRight.style.display = 'block';
+                } else {
+                    foulLeft.style.display = 'none'; foulRight.style.display = 'none';
+                    if(foulTextLeft) foulTextLeft.style.display = 'none'; if(foulTextRight) foulTextRight.style.display = 'none';
+                }
+            }
+
+            const speedSelect = document.getElementById('anim-speed-select');
+            const durationMult = speedSelect ? (parseFloat(speedSelect.value) || 1.0) : 1.0;
+            const rule = currentActiveRule; 
+            const baseDur = (rule.minimap.customDur || 3) * durationMult;
+            
+            styleSheet.innerHTML = rule.minimap.animKeyframes;
+
+            const ball = document.getElementById('anim-ball');
+            if (ball) {
+                ball.style.animation = 'none'; ball.style.display = 'none'; void ball.offsetWidth;
+                if (rule.minimap.ballAnim) {
+                    ball.style.cssText = rule.minimap.ballStart; ball.style.display = 'block'; 
+                    ball.style.animation = `${rule.minimap.ballAnim} ${baseDur}s forwards linear`;
+                }
+            }
+
+            ['runnerAnims', 'defAnims'].forEach(animType => {
+                if(rule.minimap[animType]) {
+                    Object.keys(rule.minimap[animType]).forEach(id => {
+                        const el = document.getElementById((animType === 'defAnims' ? 'def-' : 'runner-') + id);
+                        if(el) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = `${rule.minimap[animType][id]} ${baseDur}s forwards linear`; }
+                    });
+                }
+            });
+
+            if(rule.minimap.extraAnims) {
+                Object.keys(rule.minimap.extraAnims).forEach(id => {
+                    const el = document.getElementById('extra-' + id);
+                    if(el) {
+                        el.style.animation = 'none'; void el.offsetWidth;
+                        el.style.animation = `${rule.minimap.extraAnims[id]} ${baseDur}s forwards linear`;
+                        el.style.animationDelay = `${(rule.minimap.extraDelays?.[id] || 0) * durationMult}s`;
+                    }
+                });
+            }
+
+            if(rule.minimap.hasBallTimers) {
+                rule.minimap.hasBallTimers.forEach(timer => {
+                    const el = document.getElementById('def-' + timer.defId);
+                    if (el) {
+                        popupTimeouts.push(setTimeout(() => {
+                            el.classList.add('defender-has-ball');
+                        }, timer.addAt * baseDur * 1000));
+                        
+                        popupTimeouts.push(setTimeout(() => {
+                            el.classList.remove('defender-has-ball');
+                        }, timer.removeAt * baseDur * 1000));
+                    }
+                });
+            }
+
+            if(rule.minimap.popups) {
+                const container = document.getElementById('stadium-baseball');
+                if (container) {
+                    rule.minimap.popups.forEach(p => {
+                        popupTimeouts.push(setTimeout(() => {
+                            const pop = document.createElement('div'); pop.className = 'minimap-popup'; pop.style.cssText = p.pos; pop.innerHTML = p.type;
+                            if(p.color) pop.style.color = p.color;
+                            else pop.style.color = p.type.includes('OUT') ? '#E31837' : (p.type.includes('SAFE') ? '#4CAF50' : 'white');
+                            pop.style.animation = `animPopup ${1.5 * durationMult}s forwards`; container.appendChild(pop);
+                        }, p.delay * 1000 * durationMult));
+                    });
+                }
+            }
+            if(rule.minimap.onEnd) popupTimeouts.push(setTimeout(() => { rule.minimap.onEnd(); }, baseDur * 1000));
+
+            animLoopTimer = setTimeout(() => { playMinimapAnimation(); }, (baseDur * 1000) + 1500);
+        }
+
+        function switchTab(tabId) {
+            if(animLoopTimer) clearTimeout(animLoopTimer);
+            document.getElementById('nav-learn').className = tabId === 'learn' ? 'px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold bg-gray-900 text-white transition-colors' : 'px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors';
+            document.getElementById('nav-quiz').className = tabId === 'quiz' ? 'px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold bg-gray-900 text-white transition-colors' : 'px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors';
+            
+            document.getElementById('section-learn').classList.toggle('hidden', tabId !== 'learn'); document.getElementById('section-learn').classList.toggle('flex', tabId === 'learn');
+            document.getElementById('section-quiz').classList.toggle('hidden', tabId !== 'quiz'); document.getElementById('section-quiz').classList.toggle('flex', tabId === 'quiz');
+        }
+
+        // --- 퀴즈 진행 함수 ---
+        function startQuiz() {
+            window.currentQuizIndex = 0;
+            
+            window.activeQuizData = [...quizQuestions].sort(() => Math.random() - 0.5);
+            window.activeQuizData.forEach(q => q.options.sort(() => Math.random() - 0.5));
+
+            window.quizStates = window.activeQuizData.map(() => ({ isSolved: false, score: 10, earnedScore: 0, wrongOptions: [] }));
+
+            document.getElementById('quiz-start').classList.add('hidden'); document.getElementById('quiz-result').classList.add('hidden');
+            document.getElementById('quiz-question-container').classList.remove('hidden'); document.getElementById('quiz-question-container').classList.add('flex');
+            
+            showQuestion();
+        }
+
+        function showQuestion() {
+            const data = window.activeQuizData[window.currentQuizIndex];
+            const state = window.quizStates[window.currentQuizIndex];
+            
+            document.getElementById('quiz-progress-bar').style.width = ((window.currentQuizIndex) / window.activeQuizData.length * 100) + '%';
+            document.getElementById('quiz-progress-text').textContent = `${window.currentQuizIndex + 1} / ${window.activeQuizData.length}`;
+            document.getElementById('quiz-category').textContent = data.category;
+            document.getElementById('quiz-question-text').textContent = data.question;
+            
+            document.getElementById('btn-prev-quiz').disabled = window.currentQuizIndex === 0;
+            const nextBtn = document.getElementById('btn-next-quiz');
+            if (window.currentQuizIndex === window.activeQuizData.length - 1) {
+                nextBtn.innerHTML = '결과 확인<i class="fa-solid fa-check ml-2"></i>'; nextBtn.classList.replace('bg-blue-600', 'bg-green-600'); nextBtn.classList.replace('hover:bg-blue-700', 'hover:bg-green-700');
+            } else {
+                nextBtn.innerHTML = '다음 문제<i class="fa-solid fa-chevron-right ml-2"></i>'; nextBtn.classList.replace('bg-green-600', 'bg-blue-600'); nextBtn.classList.replace('hover:bg-green-700', 'hover:bg-blue-700');
+            }
+
+            const hintContainer = document.getElementById('quiz-hint-container'); hintContainer.classList.add('hidden');
+            const opts = document.getElementById('quiz-options'); opts.innerHTML = '';
+            
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-xl border-2 border-gray-200 transition-all font-medium text-gray-700 flex items-center group bg-white hover:border-blue-500 hover:bg-blue-50`;
+                btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-gray-100 text-gray-500 flex items-center justify-center font-bold mr-3 shrink-0 group-hover:bg-blue-500 group-hover:text-white transition-colors text-sm">${String.fromCharCode(65 + idx)}</span><span class="flex-grow text-sm md:text-base">${opt.text}</span>`;
+                
+                if (state.isSolved) {
+                    btn.disabled = true; btn.classList.add('cursor-not-allowed');
+                    if (opt.isCorrect) {
+                        btn.classList.replace('border-gray-200', 'border-green-500'); btn.classList.replace('hover:border-blue-500', 'border-green-500'); btn.classList.add('bg-green-50', 'text-green-800');
+                        btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-green-500 text-white flex items-center justify-center font-bold mr-3 shrink-0 text-sm"><i class="fa-solid fa-check"></i></span><span class="flex-grow font-bold text-sm md:text-base">${opt.text}</span>`;
+                        hintContainer.classList.remove('hidden'); hintContainer.className = 'mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs md:text-sm font-bold flex items-center fade-in';
+                        hintContainer.innerHTML = '<i class="fa-solid fa-party-horn text-green-500 mr-2 text-lg"></i><span>정답을 맞춘 문제입니다!</span>';
+                    } else if (state.wrongOptions.includes(opt.text)) {
+                        btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60');
+                        btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center font-bold mr-3 shrink-0 text-sm"><i class="fa-solid fa-xmark"></i></span><span class="flex-grow line-through text-sm md:text-base">${opt.text}</span>`;
+                    }
+                } else {
+                    if (state.wrongOptions.includes(opt.text)) {
+                        btn.disabled = true; btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.replace('hover:border-blue-500', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60', 'cursor-not-allowed');
+                        btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center font-bold mr-3 shrink-0 text-sm"><i class="fa-solid fa-xmark"></i></span><span class="flex-grow line-through text-sm md:text-base">${opt.text}</span>`;
+                    } else { btn.onclick = () => handleAnswer(opt, btn, data.hint); }
+                }
+                opts.appendChild(btn);
+            });
+        }
+
+        function triggerConfetti() {
+            const colors = ['#E31837', '#002D72', '#4CAF50', '#fde047', '#3498db'];
+            for(let i=0; i<60; i++) {
+                const confetti = document.createElement('div'); confetti.className = 'confetti';
+                confetti.style.left = (Math.random() * 100) + 'vw'; confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 2 + 1.5) + 's'; confetti.style.animationDelay = (Math.random() * 0.2) + 's';
+                document.body.appendChild(confetti); setTimeout(() => confetti.remove(), 3500);
+            }
+        }
+
+        async function playCorrectSound() {
+            try {
+                await Tone.start(); const synth = new Tone.PolySynth(Tone.Synth).toDestination(); const now = Tone.now();
+                synth.triggerAttackRelease("C5", "8n", now); synth.triggerAttackRelease("E5", "8n", now + 0.1); synth.triggerAttackRelease("G5", "4n", now + 0.2);
+            } catch (e) { console.log("Audio not supported or blocked"); }
+        }
+
+        function handleAnswer(opt, btn, hintText) {
+            const state = window.quizStates[window.currentQuizIndex]; const hintContainer = document.getElementById('quiz-hint-container');
+
+            if (opt.isCorrect) {
+                state.isSolved = true; state.earnedScore = state.score; 
+                triggerConfetti(); playCorrectSound();
+                
+                btn.classList.replace('border-gray-200', 'border-green-500'); btn.classList.replace('hover:border-blue-500', 'border-green-500'); btn.classList.add('bg-green-50', 'text-green-800');
+                btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-green-500 text-white flex items-center justify-center font-bold mr-3 shrink-0"><i class="fa-solid fa-check"></i></span><span class="flex-grow font-bold">${opt.text}</span>`;
+                
+                const allBtns = document.querySelectorAll('#quiz-options button'); allBtns.forEach(b => { b.disabled = true; b.classList.add('cursor-not-allowed'); });
+                
+                hintContainer.classList.remove('hidden'); hintContainer.className = 'mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm font-bold flex items-center animate-pulse fade-in';
+                hintContainer.innerHTML = '<i class="fa-solid fa-party-horn text-green-500 mr-2 text-xl"></i><span>정답입니다! 훌륭해요! 잠시 후 다음 문제로 넘어갑니다.</span>';
+
+                const answeredIndex = window.currentQuizIndex;
+                setTimeout(() => { if (answeredIndex === window.currentQuizIndex) nextQuestion(true); }, 2000);
+            } else {
+                state.score = Math.max(0, state.score - 5); state.wrongOptions.push(opt.text);
+                btn.disabled = true; btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.replace('hover:border-blue-500', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60', 'cursor-not-allowed');
+                btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center font-bold mr-3 shrink-0"><i class="fa-solid fa-xmark"></i></span><span class="flex-grow line-through">${opt.text}</span>`;
+                
+                hintContainer.classList.remove('hidden'); hintContainer.className = 'mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm font-bold flex items-start fade-in';
+                hintContainer.innerHTML = `<i class="fa-solid fa-lightbulb text-yellow-500 mt-0.5 mr-2 text-lg"></i><div><strong class="text-red-500 block mb-1">아쉽게도 오답입니다! 다른 보기를 선택해보세요.</strong>${hintText}</div>`;
+            }
+        }
+
+        function prevQuestion() { if (window.currentQuizIndex > 0) { window.currentQuizIndex--; showQuestion(); } }
+        function nextQuestion(isAuto = false) {
+            if (window.currentQuizIndex < window.activeQuizData.length - 1) { window.currentQuizIndex++; showQuestion(); } 
+            else { let allSolved = window.quizStates.every(s => s.isSolved); if (!isAuto || allSolved) showResult(); }
+        }
+
+        function showResult() {
+            const finalScore = window.quizStates.reduce((sum, state) => sum + state.earnedScore, 0);
+            document.getElementById('quiz-question-container').classList.add('hidden'); document.getElementById('quiz-result').classList.remove('hidden'); document.getElementById('quiz-result').classList.add('flex');
+            document.getElementById('result-score').textContent = Math.round(finalScore) + '점'; document.getElementById('result-message').textContent = finalScore >= 80 ? '완벽합니다! 야구 마스터시네요!' : '조금 더 복습해볼까요?';
+            document.getElementById('result-icon').innerHTML = finalScore >= 80 ? '<i class="fa-solid fa-medal text-5xl text-yellow-500"></i>' : '<i class="fa-solid fa-book text-5xl text-gray-500"></i>';
+        }
+
+        function checkAdminPassword() {
+            const pwd = document.getElementById('admin-pwd').value; const savedPwd = localStorage.getItem('admin_pwd') || '1234';
+            if(pwd === savedPwd) { isAdmin = true; document.getElementById('admin-login-modal').classList.add('hidden'); document.getElementById('admin-pwd').value = ''; updateAdminUI(); } 
+            else { alert('비밀번호가 틀렸습니다.'); }
+        }
+
+        function updateAdminUI() { const controls = document.getElementById('admin-controls'); if(isAdmin && currentActiveRule) controls.classList.remove('hidden'); else controls.classList.add('hidden'); }
+        function logoutAdmin() { isAdmin = false; updateAdminUI(); }
+
+        function formatText(command, value = null) { document.execCommand(command, false, value); document.getElementById('edit-description').focus(); }
+
+        function openEditModal() {
+            if(!currentActiveRule) return;
+            document.getElementById('edit-description').innerHTML = currentActiveRule.description;
+            document.getElementById('edit-points').value = currentActiveRule.points.join('\n');
+            document.getElementById('admin-edit-modal').classList.remove('hidden');
+        }
+
+        function saveRuleDetails() {
+    if(!currentActiveRule) return;
+    
+    // 에디터에서 수정한 내용 가져오기
+    const newDesc = document.getElementById('edit-description').innerHTML; 
+    const newPoints = document.getElementById('edit-points').value.split('\n').filter(p => p.trim() !== '');
+    
+    // 현재 화면 즉시 업데이트
+    currentActiveRule.description = newDesc; 
+    currentActiveRule.points = newPoints;
+    document.getElementById('detail-description').innerHTML = newDesc;
+    
+    const pointsContainer = document.getElementById('detail-points'); 
+    pointsContainer.innerHTML = '';
+    newPoints.forEach(point => { 
+        pointsContainer.innerHTML += `<li><i class="fa-solid fa-check text-green-500 mr-1.5"></i>${point}</li>`; 
+    });
+    
+    // 모달창 닫기
+    document.getElementById('admin-edit-modal').classList.add('hidden');
+
+    // ★ 구글 시트에 저장하라고 서버(Code.gs)로 전송
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run
+            .withSuccessHandler(() => { alert("성공적으로 구글 시트에 저장되었습니다! 이제 모두가 볼 수 있습니다."); })
+            .withFailureHandler((error) => { alert("저장 중 오류가 발생했습니다: " + error.message); })
+            .saveRuleData(currentActiveRule.id, newDesc, newPoints);
+    }
+}
+
+        function changePassword() {
+            const currentPwd = prompt('현재 비밀번호를 입력하세요:'); const savedPwd = localStorage.getItem('admin_pwd') || '1234';
+            if (currentPwd === savedPwd) {
+                const newPwd = prompt('새로운 비밀번호를 입력하세요:');
+                if (newPwd && newPwd.trim() !== '') { localStorage.setItem('admin_pwd', newPwd); alert('비밀번호가 성공적으로 변경되었습니다.'); }
+            } else if (currentPwd !== null) { alert('현재 비밀번호가 틀렸습니다.'); }
+        }
+
+        window.onload = () => {
+    // 구글 시트에서 수정한 데이터를 가져오라고 서버에 요청
+    if (typeof google !== 'undefined' && google.script) {
+        google.script.run.withSuccessHandler((parsedRules) => {
+            // 시트에서 데이터를 성공적으로 가져오면 기존 규칙 데이터 덮어쓰기
+            rulesData = rulesData.map(rule => {
+                if (parsedRules[rule.id]) {
+                    return { ...rule, description: parsedRules[rule.id].description, points: parsedRules[rule.id].points };
+                }
+                return rule;
+            });
+            initLearningSection(); // 화면에 버튼들 그리기
+        }).getRulesData(); // Code.gs의 함수 호출
+    } else {
+        // 로컬에서 그냥 테스트할 때 (에러 방지용)
+        initLearningSection(); 
+    }
+};
+    </script>
+</body>
+</html>
