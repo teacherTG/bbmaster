@@ -335,7 +335,7 @@
                 <div id="quiz-start" class="flex-grow flex flex-col items-center justify-center p-8 text-center">
                     <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-clipboard-question text-5xl text-blue-500"></i></div>
                     <h2 class="text-3xl font-black mb-2 text-gray-900">야구 규칙 실력 점검</h2>
-                    <p class="text-gray-500 mb-8 max-w-md">매번 새로운 상황의 10문제를 풀어보세요. 이미 나온 문제는 제외하며, 틀리면 힌트를 보고 다시 도전할 수 있습니다!</p>
+                    <p class="text-gray-500 mb-8 max-w-md">학습한 규칙을 확인하는 핵심 50문제에서 10문제씩 풀어보세요. 50문제를 고르게 풀고 나면 다시 반복하며 복습합니다.</p>
                     <button onclick="startQuiz()" class="bg-gray-900 hover:bg-black text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 text-lg">퀴즈 시작하기</button>
                 </div>
 
@@ -366,7 +366,7 @@
                     <div class="text-5xl font-black text-blue-600 mb-4" id="result-score">100점</div>
                     <p id="result-message" class="text-gray-600 mb-8 font-medium"></p>
                     <div class="flex space-x-3">
-                        <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow transition-colors"><i class="fa-solid fa-rotate-right mr-2"></i>새로운 10문제 풀기</button>
+                        <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow transition-colors"><i class="fa-solid fa-rotate-right mr-2"></i>다음 10문제 풀기</button>
                         <button onclick="switchTab('learn')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl transition-colors">학습으로 돌아가기</button>
                     </div>
                 </div>
@@ -729,20 +729,1264 @@
             }
         ];
 
-        let quizQuestions = [
-            { category: '타자/주자 규칙', question: '타자가 친 공이 페어 지역에 떨어져 1루에 안전하게 도착했습니다. 실책 없이 순수하게 진루했다면?', hint: '수비수의 에러 없이 1루에 도착한 기본적인 안타입니다.', options: [ { text: '파울', isCorrect: false }, { text: '단타 (1루타)', isCorrect: true }, { text: '인정 2루타', isCorrect: false }, { text: '플라이 아웃', isCorrect: false } ] },
-            { category: '아웃 규칙', question: '타자가 친 공이 땅에 닿기 전에 수비수가 직접 글러브로 잡았습니다. 이 상황의 판정은?', hint: '공중에 뜬(Fly) 공을 바로 잡아서 아웃시키는 규칙입니다.', options: [ { text: '파울', isCorrect: false }, { text: '플라이 아웃', isCorrect: true }, { text: '태그 아웃', isCorrect: false }, { text: '포스 아웃', isCorrect: false } ] },
-            { category: '아웃 규칙', question: '타자가 공을 치고 1루로 뜁니다. 수비수가 공을 잡아 1루수에게 던져 타자보다 먼저 1루를 밟았습니다. 이것은 어떤 아웃인가요?', hint: '타자에게는 1루로 뛰어야 할 강제 의무가 생겼습니다.', options: [ { text: '태그 아웃', isCorrect: false }, { text: '인필드 플라이', isCorrect: false }, { text: '포스 아웃', isCorrect: true }, { text: '스트라이크 아웃', isCorrect: false } ] },
-            { category: '아웃 규칙', question: '무사 1루에서 내야 땅볼을 쳐서, 유격수가 2루를 밟고 1루로 던져 주자와 타자를 연속으로 아웃시켰습니다.', hint: '한 번의 플레이로 두 명의 공격수를 연달아 아웃시키는 멋진 수비입니다.', options: [ { text: '병살타 (Double Play)', isCorrect: true }, { text: '런다운', isCorrect: false }, { text: '태그업', isCorrect: false }, { text: '인정 2루타', isCorrect: false } ] },
-            { category: '아웃 규칙', question: '포스 상태가 아닌 주자를 아웃시키기 위해, 수비수가 반드시 공을 쥔 손이나 글러브로 주자를 터치하는 규칙은?', hint: '술래잡기에서 손으로 직접 터치해야 잡히는 것과 같아요.', options: [ { text: '포스 아웃', isCorrect: false }, { text: '수비 방해', isCorrect: false }, { text: '인필드 플라이', isCorrect: false }, { text: '태그 아웃', isCorrect: true } ] },
-            { category: '아웃 규칙', question: '주자가 도루를 시도하다가 내야수를 통과하지 않은 타구에 맞았습니다. 올바른 판정은?', hint: '타구에 맞은 주자는 페널티로 아웃되며, 타자는 1루로 보내줍니다.', options: [ { text: '주자는 그대로 가고 타자는 아웃', isCorrect: false }, { text: '수비 방해로 주자 아웃, 타자는 1루 진루', isCorrect: true }, { text: '투수가 아웃', isCorrect: false }, { text: '볼 데드 선언 후 모두 원래 자리로', isCorrect: false } ] },
-            { category: '타자/주자 규칙', question: '타자가 친 공이 그라운드에 한 번 바운드 된 뒤 담장 밖으로 넘어갔습니다. 이때의 판정은?', hint: '그라운드 룰 더블이라고도 하며, 2개의 베이스 진루권만 주어집니다.', options: [ { text: '홈런', isCorrect: false }, { text: '파울', isCorrect: false }, { text: '인정 2루타', isCorrect: true }, { text: '플라이 아웃', isCorrect: false } ] },
-            { category: '타자/주자 규칙', question: '플라이 타구를 수비수가 잡았을 때, 3루 주자가 홈으로 들어오기 위해 지켜야 할 규칙은?', hint: '수비수의 글러브에 공이 닿는 순간부터 출발해야 합니다.', options: [ { text: '공이 뜨는 순간 바로 뛴다.', isCorrect: false }, { text: '수비수가 공을 잡는 순간, 베이스를 밟고 있다가 출발한다.', isCorrect: true }, { text: '수비수가 공을 놓칠 때까지 기다린다.', isCorrect: false }, { text: '아무 때나 뛸 수 있다.', isCorrect: false } ] },
-            { category: '타자/주자 규칙', question: '플라이 아웃 상황에서 주자가 수비수가 공을 잡기도 전에 베이스에서 발을 떼고 출발했습니다. 수비팀이 어필하면?', hint: '출발이 너무 빨랐기 때문에 규칙 위반입니다.', options: [ { text: '다음 베이스 진루 허용', isCorrect: false }, { text: '다시 원래 자리로 돌아가면 무조건 세이프', isCorrect: false }, { text: '타자에게 경고 조치', isCorrect: false }, { text: '주자 아웃', isCorrect: true } ] }
-        ];
-
+        // 학습 규칙에 연결된 핵심 상황 50문제. 회차만 바꾼 문제는 생성하지 않습니다.
+        const quizQuestions = [
+    {
+        "id": "core-01",
+        "ruleId": "basic-hit",
+        "topic": "타격과 파울",
+        "question": "타자가 친 페어 타구가 외야에 떨어졌습니다. 수비 실책 없이 타자가 1루에 안전하게 도착하고 멈췄다면 기록은?",
+        "hint": "페어 타구로 실책 없이 1루까지 진루하면 단타입니다.",
+        "options": [
+            {
+                "text": "단타(1루타)",
+                "isCorrect": true
+            },
+            {
+                "text": "파울",
+                "isCorrect": false
+            },
+            {
+                "text": "플라이 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "인정 2루타",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-02",
+        "ruleId": "basic-hit",
+        "topic": "타격과 파울",
+        "question": "평범한 땅볼을 수비수가 놓쳐 타자가 1루에 살았습니다. 실책 덕분에 진루한 경우에도 반드시 단타로 기록할까요?",
+        "hint": "1루에 도착했다는 결과만으로 안타가 되는 것은 아닙니다. 수비 실책 여부를 구별하세요.",
+        "options": [
+            {
+                "text": "아니요. 실책으로 진루한 경우와 안타는 구별합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 1루에 살면 모두 단타입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 땅볼은 모두 단타입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 타자는 자동으로 아웃입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-03",
+        "ruleId": "basic-hit",
+        "topic": "타격과 파울",
+        "question": "타자의 땅볼이 페어 지역을 지나 외야로 빠졌습니다. 타자가 1루에 안전하게 도착했을 때, 수비는 플레이를 계속할 수 있나요?",
+        "hint": "단타는 플레이를 멈추게 하지 않습니다. 인정 2루타의 볼 데드와 구별하세요.",
+        "options": [
+            {
+                "text": "네. 공은 살아 있으므로 다른 주자의 진루도 수비할 수 있습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "아니요. 단타가 나오면 즉시 볼 데드입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 모든 주자는 원래 베이스로 돌아갑니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 타자는 자동으로 2루까지 갑니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-04",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "1스트라이크에서 일반 스윙으로 친 파울이 관중석에 떨어졌습니다. 다음 스트라이크 수는?",
+        "hint": "2스트라이크 이전의 일반 파울은 스트라이크 하나를 추가합니다.",
+        "options": [
+            {
+                "text": "2스트라이크",
+                "isCorrect": true
+            },
+            {
+                "text": "1스트라이크 그대로",
+                "isCorrect": false
+            },
+            {
+                "text": "3스트라이크로 삼진",
+                "isCorrect": false
+            },
+            {
+                "text": "스트라이크가 0으로 초기화",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-05",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "2스트라이크에서 번트가 아닌 일반 스윙으로 파울을 쳤고 아무도 잡지 못했습니다. 판정은?",
+        "hint": "일반 파울은 이미 2스트라이크이면 삼진을 만들지 않습니다.",
+        "options": [
+            {
+                "text": "2스트라이크를 유지하고 다시 타격합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "파울이므로 삼진입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "볼넷으로 1루에 갑니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "스트라이크가 하나 줄어듭니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-06",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "2스트라이크에서 타자가 번트를 댔지만 공이 파울이 되어 땅에 떨어졌습니다. 판정은?",
+        "hint": "2스트라이크 이후 번트 파울은 일반 스윙의 파울과 달리 삼진입니다.",
+        "options": [
+            {
+                "text": "삼진 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "일반 파울처럼 타격 기회 유지",
+                "isCorrect": false
+            },
+            {
+                "text": "볼넷",
+                "isCorrect": false
+            },
+            {
+                "text": "인정 2루타",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-07",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "1루 주자가 뛰는 도중 타자의 파울 타구가 땅에 떨어졌습니다. 2루에 도착한 주자는 어떻게 해야 하나요?",
+        "hint": "잡히지 않은 파울은 볼 데드가 되어 주자는 원래 베이스로 돌아갑니다.",
+        "options": [
+            {
+                "text": "파울로 플레이가 멈췄으므로 1루로 돌아갑니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "2루에 그대로 남습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "무조건 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "수비가 공을 찾는 동안 3루까지 갑니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-08",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "타자의 땅볼이 1루에 닿거나 1루를 지나기 전에 파울 지역에서 멈췄습니다. 판정은?",
+        "hint": "1루를 지나기 전의 땅볼은 최종적으로 멈춘 위치 등을 기준으로 페어·파울을 판단합니다.",
+        "options": [
+            {
+                "text": "파울",
+                "isCorrect": true
+            },
+            {
+                "text": "처음 페어 지역에 닿았다면 무조건 안타",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 먼저 1루에 도착하면 단타",
+                "isCorrect": false
+            },
+            {
+                "text": "인정 2루타",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-09",
+        "ruleId": "basic-foul",
+        "topic": "타격과 파울",
+        "question": "타구가 3루 베이스를 맞은 뒤 파울 지역으로 굴러갔습니다. 판정은?",
+        "hint": "베이스는 페어 지역에 포함됩니다. 3루를 맞은 타구는 이후 파울 지역으로 가도 페어입니다.",
+        "options": [
+            {
+                "text": "페어이며 플레이를 계속합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "파울이므로 즉시 플레이 정지",
+                "isCorrect": false
+            },
+            {
+                "text": "타자 자동 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "타자에게 2루 진루권 부여",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-10",
+        "ruleId": "fly-out",
+        "topic": "뜬공과 태그업",
+        "question": "높이 뜬 타구를 중견수가 땅에 닿기 전에 확실히 잡았습니다. 타자는 어떻게 되나요?",
+        "hint": "타구를 공중에서 완전히 잡으면 타자는 아웃입니다. 1루 송구는 필요하지 않습니다.",
+        "options": [
+            {
+                "text": "플라이 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "1루까지 뛰면 세이프",
+                "isCorrect": false
+            },
+            {
+                "text": "파울로 다시 타격",
+                "isCorrect": false
+            },
+            {
+                "text": "수비가 1루로 던져야만 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-11",
+        "ruleId": "fly-out",
+        "topic": "뜬공과 태그업",
+        "question": "파울 지역으로 뜬 공을 3루수가 땅에 닿기 전에 잡았습니다. 타자는 다시 칠 수 있나요?",
+        "hint": "잡히지 않은 파울과 잡힌 파울 플라이를 구별하세요. 파울 플라이 포구는 아웃입니다.",
+        "options": [
+            {
+                "text": "아니요. 파울 지역에서도 뜬공을 잡으면 타자 아웃입니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 파울은 잡아도 아웃이 아닙니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 2스트라이크일 때만 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 타자가 1루에 먼저 도착하면 됩니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-12",
+        "ruleId": "fly-out",
+        "topic": "뜬공과 태그업",
+        "question": "외야수가 타구를 한 번 바운드된 뒤 잡았습니다. 이것만으로 타자가 플라이 아웃인가요?",
+        "hint": "플라이 아웃은 타구가 땅에 닿기 전에 잡아야 성립합니다.",
+        "options": [
+            {
+                "text": "아니요. 땅에 닿은 뒤 잡았으므로 플라이 아웃이 아닙니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 글러브로 잡으면 모두 플라이 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 외야에서 잡으면 무조건 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 타자는 무조건 2루까지 갑니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-13",
+        "ruleId": "fly-out",
+        "topic": "뜬공과 태그업",
+        "question": "1루 주자가 타구가 떨어질 것으로 보고 2루로 뛰었는데, 외야수가 뜬공을 잡았습니다. 주자가 먼저 해야 할 일은?",
+        "hint": "뜬공이 잡히면 일찍 출발한 주자는 원래 베이스를 다시 밟아야 합니다.",
+        "options": [
+            {
+                "text": "원래 베이스인 1루로 돌아가 리터치합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "2루를 밟으면 되돌아갈 필요가 없습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "수비수가 잡았으므로 주자도 즉시 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "그대로 3루까지 뛰어야 합니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-14",
+        "ruleId": "interference",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "1루 주자가 달리다 내야수를 통과하지 않은 페어 타구에 맞았습니다. 수비수가 먼저 건드리지 않았고 타구를 처리할 기회도 남아 있습니다. 기본 판정은?",
+        "hint": "수비수에게 닿지 않고 수비 기회가 남은 페어 타구에 주자가 맞으면 주자 아웃과 볼 데드가 적용됩니다.",
+        "options": [
+            {
+                "text": "주자 아웃, 볼 데드, 타자는 1루 진루",
+                "isCorrect": true
+            },
+            {
+                "text": "타자 아웃, 주자는 2루 진루",
+                "isCorrect": false
+            },
+            {
+                "text": "둘 다 무조건 세이프",
+                "isCorrect": false
+            },
+            {
+                "text": "투수 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-15",
+        "ruleId": "interference",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "내야수를 통과하지 않은 페어 타구에 2루 주자가 맞아 아웃되었습니다. 수비수는 타구를 건드리지 않았습니다. 이후 공을 주워 다른 주자를 계속 아웃시킬 수 있나요?",
+        "hint": "타구에 맞아 주자 아웃이 선언되면 공은 볼 데드가 됩니다.",
+        "options": [
+            {
+                "text": "아니요. 볼 데드이므로 그 뒤의 플레이는 멈춥니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 공을 먼저 주운 수비수는 계속 수비합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 타자만 계속 아웃시킬 수 있습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 모든 주자는 반드시 다음 베이스로 뜁니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-16",
+        "ruleId": "interference",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "주자는 2루와 3루에 있습니다. 수비수에게 닿지 않고 내야수를 통과하지 않은 페어 타구에 2루 주자가 맞아 아웃되면, 강제 진루가 없는 3루 주자는?",
+        "hint": "타자는 1루를 얻지만 다른 주자는 강제 진루가 아니면 원래 베이스에 남습니다.",
+        "options": [
+            {
+                "text": "3루에 남고, 타자는 1루로 갑니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "3루 주자도 무조건 홈으로 갑니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "3루 주자도 함께 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 2루로 가고 3루 주자는 홈으로 갑니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-17",
+        "ruleId": "interference",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "타구에 맞은 주자 아웃 상황에서 한 학생이 “주자가 맞았으니 타자도 같이 아웃”이라고 말했습니다. 올바른 설명은?",
+        "hint": "학습한 타구에 맞음 상황에서는 주자 아웃과 타자의 1루 진루를 구별해야 합니다.",
+        "options": [
+            {
+                "text": "맞은 주자는 아웃이지만, 타자는 일반적으로 1루를 얻습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "타자와 주자 모두 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자만 아웃이고 맞은 주자는 세이프입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "수비팀이 누구를 아웃할지 고릅니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-18",
+        "ruleId": "ground-rule-double",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "페어 타구가 외야에서 한 번 바운드된 뒤 담장 밖으로 넘어갔습니다. 타자의 진루권은?",
+        "hint": "바운드 후 담장을 넘는 인정 2루타는 타자에게 두 베이스의 진루권을 줍니다.",
+        "options": [
+            {
+                "text": "2루까지",
+                "isCorrect": true
+            },
+            {
+                "text": "홈까지",
+                "isCorrect": false
+            },
+            {
+                "text": "1루까지만",
+                "isCorrect": false
+            },
+            {
+                "text": "수비가 공을 찾을 때까지 자유롭게 진루",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-19",
+        "ruleId": "ground-rule-double",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "1루에 주자가 있을 때 페어 타구가 바운드 후 담장을 넘어 인정 2루타가 되었습니다. 1루 주자는 어디까지 가나요?",
+        "hint": "투구 때 1루에 있던 주자는 두 베이스를 받아 3루까지 갑니다.",
+        "options": [
+            {
+                "text": "3루",
+                "isCorrect": true
+            },
+            {
+                "text": "2루",
+                "isCorrect": false
+            },
+            {
+                "text": "홈",
+                "isCorrect": false
+            },
+            {
+                "text": "1루에 남음",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-20",
+        "ruleId": "ground-rule-double",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "2루 주자가 있는 상황에서 인정 2루타가 나왔습니다. 두 베이스의 진루권을 받는 2루 주자는?",
+        "hint": "2루에서 두 베이스를 진루하면 3루를 거쳐 홈까지 갑니다.",
+        "options": [
+            {
+                "text": "홈으로 들어와 득점합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "3루까지만 갑니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "2루에 남습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자와 함께 아웃됩니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-21",
+        "ruleId": "ground-rule-double",
+        "topic": "타구에 맞음과 인정 2루타",
+        "question": "인정 2루타가 선언됐는데 타자가 “공이 밖에 있으니 3루까지 뛰겠다”고 합니다. 올바른 설명은?",
+        "hint": "인정 2루타는 플레이가 멈추므로 공을 찾는 시간과 진루권은 관계없습니다.",
+        "options": [
+            {
+                "text": "볼 데드이며 타자의 진루권은 2루까지입니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "수비가 공을 찾기 전이면 3루까지 허용됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "담장 밖으로 갔으므로 무조건 홈런입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 선택한 베이스까지 갈 수 있습니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-22",
+        "ruleId": "tag-up",
+        "topic": "뜬공과 태그업",
+        "question": "3루 주자가 베이스를 밟고 기다립니다. 잡히는 뜬공에서 태그업 출발이 가능한 가장 이른 때는?",
+        "hint": "태그업 출발 기준은 수비수가 공을 처음 터치하는 순간입니다.",
+        "options": [
+            {
+                "text": "수비수가 타구를 처음 터치한 순간",
+                "isCorrect": true
+            },
+            {
+                "text": "타자가 공을 친 순간",
+                "isCorrect": false
+            },
+            {
+                "text": "공이 가장 높이 뜬 순간",
+                "isCorrect": false
+            },
+            {
+                "text": "수비수가 송구를 시작한 순간",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-23",
+        "ruleId": "tag-up",
+        "topic": "뜬공과 태그업",
+        "question": "외야수가 뜬공을 처음 터치한 뒤 잠시 더듬다가 땅에 떨어뜨리지 않고 잡았습니다. 3루 주자가 첫 터치 순간 베이스에서 출발했다면?",
+        "hint": "공을 더듬어도 첫 터치 시점부터 출발할 수 있습니다. 공이 땅에 떨어지지 않고 최종 포구된 상황입니다.",
+        "options": [
+            {
+                "text": "출발 시점은 올바른 태그업입니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "완전히 잡기 전이므로 무조건 리터치 위반입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "송구할 때까지 기다려야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자와 함께 주자도 자동 아웃입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-24",
+        "ruleId": "tag-up",
+        "topic": "뜬공과 태그업",
+        "question": "외야 뜬공이 잡혔습니다. 1루 주자가 리터치한 뒤 2루로 태그업할 수 있나요?",
+        "hint": "어느 베이스의 주자든 리터치 의무를 지킨 뒤 위험을 감수하고 다음 베이스로 갈 수 있습니다.",
+        "options": [
+            {
+                "text": "네. 태그업은 3루 주자에게만 가능한 규칙이 아닙니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "아니요. 태그업은 홈으로 갈 때만 가능합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 1루 주자는 뜬공이면 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 하지만 수비는 태그할 수 없습니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-25",
+        "ruleId": "tag-up",
+        "topic": "뜬공과 태그업",
+        "question": "3루 주자가 올바르게 태그업해서 홈으로 뜁니다. 포수가 주자보다 먼저 공을 잡았다는 이유만으로 주자 아웃인가요?",
+        "hint": "태그업 진루는 강제 진루가 아니므로 수비는 몸을 태그해야 합니다.",
+        "options": [
+            {
+                "text": "아니요. 홈을 밟기 전 주자를 공을 가진 손이나 글러브로 태그해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 공이 먼저 도착하면 무조건 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 홈만 밟으면 포스 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 태그업한 주자는 태그해도 세이프입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-26",
+        "ruleId": "tag-up",
+        "topic": "뜬공과 태그업",
+        "question": "3루 주자가 외야수의 첫 터치까지 베이스를 밟고 있었지만, 공이 빨리 돌아올 것 같아 뛰지 않았습니다. 규칙 위반인가요?",
+        "hint": "태그업은 다음 베이스로 갈 수 있는 선택이며 강제 진루 의무는 아닙니다.",
+        "options": [
+            {
+                "text": "아니요. 태그업 진루는 선택할 수 있습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 뜬공이 잡히면 반드시 홈으로 뛰어야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 주자는 자동으로 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 대신 타자가 1루로 갑니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-27",
+        "ruleId": "tag-up-fail",
+        "topic": "뜬공과 태그업",
+        "question": "3루 주자가 수비수의 첫 터치 전에 홈으로 출발했습니다. 뜬공이 잡혔을 때 위반을 바로잡으려면?",
+        "hint": "너무 일찍 출발했다면 원래 베이스로 돌아가 리터치해야 합니다.",
+        "options": [
+            {
+                "text": "3루로 돌아가 다시 밟은 뒤 진루해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "홈만 먼저 밟으면 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "2루로 돌아가면 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 아웃이므로 주자는 어디로 가도 됩니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-28",
+        "ruleId": "tag-up-fail",
+        "topic": "뜬공과 태그업",
+        "question": "1루 주자가 첫 터치 전에 출발했고, 뜬공 포구 후에도 1루로 돌아오지 않았습니다. 수비가 공을 가진 채 1루를 밟아 적법하게 어필하면?",
+        "hint": "원래 베이스에 대한 리터치 위반은 수비가 그 베이스에서 어필하여 아웃시킬 수 있습니다.",
+        "options": [
+            {
+                "text": "리터치 위반으로 주자 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "2루에 도착했으면 무조건 세이프",
+                "isCorrect": false
+            },
+            {
+                "text": "타자만 아웃이므로 어필 불가",
+                "isCorrect": false
+            },
+            {
+                "text": "수비수가 주자를 직접 태그해야만 어필 가능",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-29",
+        "ruleId": "tag-up-fail",
+        "topic": "뜬공과 태그업",
+        "question": "2루 주자가 너무 일찍 출발했지만, 뜬공이 잡힌 뒤 수비의 어필보다 먼저 2루로 돌아가 다시 밟았습니다. 그 뒤 3루로 출발할 수 있나요?",
+        "hint": "원래 베이스로 돌아가 리터치 의무를 이행하면 다시 진루할 수 있지만 태그 아웃의 위험은 남습니다.",
+        "options": [
+            {
+                "text": "네. 리터치를 마쳤으므로 다시 진루할 수 있습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "아니요. 일찍 출발한 순간 무조건 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 반드시 홈으로만 가야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 이후에는 수비가 태그해도 세이프입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-30",
+        "ruleId": "tag-up-fail",
+        "topic": "뜬공과 태그업",
+        "question": "리터치를 하지 않은 3루 주자가 홈에 먼저 도착했습니다. 수비가 3루에서 적법하게 어필하면 “홈에 먼저 왔으니 안전하다”는 말이 맞나요?",
+        "hint": "득점 위치에 도착해도 원래 베이스의 리터치 의무는 사라지지 않습니다.",
+        "options": [
+            {
+                "text": "아니요. 홈 도착만으로 리터치 위반이 없어지지 않습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 홈에 도착하면 모든 위반이 취소됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 포수만 어필할 수 있습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 타자가 다시 타격해야 합니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-31",
+        "ruleId": "force-1",
+        "topic": "포스 아웃",
+        "question": "주자 없이 타자가 땅볼을 쳤습니다. 1루수가 공을 가진 채 타자보다 먼저 1루를 밟았습니다. 몸을 태그하지 않았는데도 아웃인가요?",
+        "hint": "타자주자의 1루 진루 의무 때문에 공을 가진 수비수가 1루를 먼저 밟으면 아웃입니다.",
+        "options": [
+            {
+                "text": "네. 타자주자는 1루로 가야 하므로 베이스에서 아웃시킬 수 있습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "아니요. 타자도 항상 몸을 태그해야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 땅볼은 잡기만 하면 세이프입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 1루수가 공 없이 밟아도 아웃입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-32",
+        "ruleId": "force-1",
+        "topic": "포스 아웃",
+        "question": "주자 없이 타자가 땅볼을 쳤습니다. 1루수가 베이스를 밟았지만 송구를 받기 전에 타자주자가 1루에 도착했습니다. 판정은?",
+        "hint": "수비는 베이스를 밟는 것뿐 아니라 공을 확실히 가지고 있어야 합니다.",
+        "options": [
+            {
+                "text": "세이프",
+                "isCorrect": true
+            },
+            {
+                "text": "베이스를 먼저 밟았으므로 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "송구가 오고 있으므로 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 멈추지 않았으므로 자동 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-33",
+        "ruleId": "force-2",
+        "topic": "포스 아웃",
+        "question": "1루 주자가 있는 상황에서 타자가 땅볼을 쳤습니다. 1루 주자는 왜 2루로 가야 하나요?",
+        "hint": "뒤에서 오는 타자주자 때문에 1루 주자에게 강제 진루 의무가 생깁니다.",
+        "options": [
+            {
+                "text": "타자주자가 1루로 오므로 기존 1루를 비워야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "땅볼이면 모든 주자가 두 베이스씩 가야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "수비가 2루를 밟았기 때문입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "1루 주자는 원래 항상 도루해야 합니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-34",
+        "ruleId": "force-2",
+        "topic": "포스 아웃",
+        "question": "1루 주자가 있는 상황의 땅볼에서 아무도 아직 아웃되지 않았습니다. 수비수가 공을 가지고 주자보다 먼저 2루를 밟았습니다. 판정은?",
+        "hint": "강제로 2루로 가야 하는 주자는 몸을 태그하지 않고도 2루에서 포스 아웃시킬 수 있습니다.",
+        "options": [
+            {
+                "text": "1루에서 오던 주자 포스 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "주자를 태그하지 않았으므로 세이프",
+                "isCorrect": false
+            },
+            {
+                "text": "타자만 자동 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "1루 주자와 타자가 모두 자동 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-35",
+        "ruleId": "force-3",
+        "topic": "포스 아웃",
+        "question": "주자 1·2루에서 땅볼이 나왔습니다. 아직 아웃은 없습니다. 3루수가 공을 가진 채 2루 주자보다 먼저 3루를 밟았습니다. 판정은?",
+        "hint": "1루 주자가 2루로 밀려오므로 2루 주자도 3루로 강제 진루합니다.",
+        "options": [
+            {
+                "text": "2루 주자 포스 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "2루 주자는 태그해야만 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 3루에서 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "1루 주자만 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-36",
+        "ruleId": "force-3",
+        "topic": "포스 아웃",
+        "question": "주자 1·2루에서 타자가 땅볼을 쳤고 아직 아무도 아웃되지 않았습니다. 강제 진루 관계를 올바르게 설명한 것은?",
+        "hint": "1루부터 연속해서 주자가 있으면 뒤의 주자 때문에 다음 베이스로 차례로 밀려납니다.",
+        "options": [
+            {
+                "text": "타자→1루, 1루 주자→2루, 2루 주자→3루",
+                "isCorrect": true
+            },
+            {
+                "text": "타자→1루, 다른 주자는 모두 그대로 있어도 됨",
+                "isCorrect": false
+            },
+            {
+                "text": "타자→2루, 1루 주자→3루",
+                "isCorrect": false
+            },
+            {
+                "text": "2루 주자만 홈으로 강제 진루",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-37",
+        "ruleId": "force-4",
+        "topic": "포스 아웃",
+        "question": "주자 1·3루에서 땅볼이 나왔고 아직 아웃은 없습니다. 1루 주자는 2루에서 포스 아웃시킬 수 있지만 3루 주자는 홈에서 태그해야 하는 이유는?",
+        "hint": "강제 진루는 1루부터 이어진 주자 배치에 의해 생깁니다. 빈 2루가 연결을 끊습니다.",
+        "options": [
+            {
+                "text": "2루가 비어 있어 3루 주자에게는 밀어내는 강제 진루가 없기 때문",
+                "isCorrect": true
+            },
+            {
+                "text": "3루 주자는 어떤 상황에서도 포스 아웃 불가",
+                "isCorrect": false
+            },
+            {
+                "text": "홈은 베이스가 아니기 때문",
+                "isCorrect": false
+            },
+            {
+                "text": "타구가 땅볼이면 3루 주자만 자유롭게 두 베이스 진루",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-38",
+        "ruleId": "force-4",
+        "topic": "포스 아웃",
+        "question": "주자 1·3루의 땅볼에서 3루 주자가 홈으로 뛰었습니다. 포수가 공을 가진 채 홈만 밟았고 주자를 태그하지 않았습니다. 주자가 홈을 밟으면?",
+        "hint": "주자 1·3루에서는 3루 주자의 홈 진루가 강제가 아니므로 몸을 태그해야 합니다.",
+        "options": [
+            {
+                "text": "다른 위반이 없다면 득점합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "홈에 공이 먼저 왔으므로 포스 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "타자가 아웃되기 전이므로 무조건 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "1루 주자가 있는 것만으로 홈에서 포스 아웃",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-39",
+        "ruleId": "force-5",
+        "topic": "포스 아웃",
+        "question": "만루에서 땅볼이 나왔습니다. 아무도 아직 아웃되지 않았고 포수가 공을 가진 채 3루 주자보다 먼저 홈을 밟았습니다. 판정은?",
+        "hint": "만루이면 3루 주자도 홈으로 강제 진루하므로 홈에서 포스 아웃이 가능합니다.",
+        "options": [
+            {
+                "text": "3루 주자 포스 아웃",
+                "isCorrect": true
+            },
+            {
+                "text": "홈에서는 무조건 몸을 태그해야 함",
+                "isCorrect": false
+            },
+            {
+                "text": "타자만 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "만루이므로 1점 자동 득점",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-40",
+        "ruleId": "force-5",
+        "topic": "포스 아웃",
+        "question": "만루에서 땅볼이 나왔고 아직 아무도 아웃되지 않았습니다. 공을 가진 수비수가 주자보다 먼저 베이스를 밟아 아웃을 만들 수 있는 곳은?",
+        "hint": "만루에서는 타자주자와 모든 기존 주자에게 다음 베이스로 갈 의무가 생깁니다.",
+        "options": [
+            {
+                "text": "1루·2루·3루·홈 모두",
+                "isCorrect": true
+            },
+            {
+                "text": "1루만",
+                "isCorrect": false
+            },
+            {
+                "text": "2루와 3루만",
+                "isCorrect": false
+            },
+            {
+                "text": "홈만",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-41",
+        "ruleId": "force-2",
+        "topic": "포스 아웃",
+        "question": "1루 주자가 있는 땅볼에서 수비가 먼저 타자주자를 1루에서 아웃시켰습니다. 이어 2루를 밟기만 하면 기존 1루 주자도 포스 아웃인가요?",
+        "hint": "뒤에서 밀어내던 타자주자가 먼저 아웃되면 앞 주자의 포스 상태가 해제됩니다.",
+        "options": [
+            {
+                "text": "아니요. 타자주자가 먼저 아웃돼 강제 진루가 풀렸으므로 태그가 필요합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 한 번 생긴 포스 상태는 끝까지 유지됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 공 없이 2루를 밟아도 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 기존 주자는 어떤 방법으로도 아웃 불가입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-42",
+        "ruleId": "force-2",
+        "topic": "포스 아웃",
+        "question": "무사 1루의 땅볼에서 수비가 먼저 2루를 밟아 1루 주자를 아웃시키고, 이어 1루로 던져 타자도 아웃시켰습니다. 한 번의 플레이로 만든 아웃 수는?",
+        "hint": "먼저 2루의 포스 아웃, 이어 1루의 타자주자 아웃을 만들면 병살입니다.",
+        "options": [
+            {
+                "text": "2개(병살)",
+                "isCorrect": true
+            },
+            {
+                "text": "1개",
+                "isCorrect": false
+            },
+            {
+                "text": "3개",
+                "isCorrect": false
+            },
+            {
+                "text": "0개",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-43",
+        "ruleId": "tag-1",
+        "topic": "태그 아웃",
+        "question": "2루 주자가 투구 때 3루 도루를 시도합니다. 3루수가 공을 잡고 베이스만 밟으면 주자가 아웃인가요?",
+        "hint": "도루는 자발적 진루이므로 베이스를 먼저 밟는 것만으로는 아웃이 되지 않습니다.",
+        "options": [
+            {
+                "text": "아니요. 강제 진루가 아니므로 주자를 태그해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 공이 먼저 도착하면 무조건 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 도루는 모두 포스 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 도루 중인 주자는 아웃시킬 수 없습니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-44",
+        "ruleId": "tag-1",
+        "topic": "태그 아웃",
+        "question": "도루 중인 주자에게 수비수가 빈 글러브를 대었습니다. 공은 반대쪽 손에 있습니다. 그 접촉만으로 태그 아웃인가요?",
+        "hint": "주자 태그는 공을 확실히 가진 손 또는 공이 든 글러브로 해야 합니다.",
+        "options": [
+            {
+                "text": "아니요. 공을 가진 손이나 글러브로 태그해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 수비수 몸 어디든 닿으면 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 공을 가지고만 있으면 빈 글러브로도 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 손으로 하는 태그는 모두 금지입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-45",
+        "ruleId": "tag-2",
+        "topic": "태그 아웃",
+        "question": "타자가 안타로 1루를 안전하게 밟은 뒤 2루까지 더 가려 합니다. 수비수가 공을 가지고 2루를 먼저 밟기만 하면 아웃인가요?",
+        "hint": "1루를 안전하게 얻은 타자주자의 추가 진루는 자발적이므로 태그 아웃 대상입니다.",
+        "options": [
+            {
+                "text": "아니요. 추가 진루는 강제가 아니므로 주자를 태그해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 타자는 2루에서도 항상 포스 상태입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 안타를 치면 2루까지 갈 의무가 있습니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 안타 주자는 태그해도 아웃 불가입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-46",
+        "ruleId": "tag-2",
+        "topic": "태그 아웃",
+        "question": "추가 진루하던 주자가 2루를 밟기 전에 공을 가진 글러브로 태그당했습니다. 수비수가 2루를 밟지 않았는데도 아웃인가요?",
+        "hint": "태그 아웃은 공을 가진 손이나 글러브로 주자를 터치하면 성립하며 수비가 베이스를 밟을 필요는 없습니다.",
+        "options": [
+            {
+                "text": "네. 베이스 밖의 주자를 적법하게 태그하면 아웃입니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "아니요. 태그와 베이스 밟기를 동시에 해야 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 글러브로 태그하는 것은 금지입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 하지만 공이 없어도 같은 판정입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-47",
+        "ruleId": "tag-3",
+        "topic": "태그 아웃",
+        "question": "3루 주자가 올바르게 태그업한 뒤 홈을 먼저 밟고, 그 다음에 포수에게 태그당했습니다. 다른 위반이 없다면?",
+        "hint": "태그업 주자를 홈에서 아웃시키려면 홈에 닿기 전에 적법한 태그가 이루어져야 합니다.",
+        "options": [
+            {
+                "text": "득점이며 늦은 태그로 아웃되지 않습니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "공이 홈 근처에 있었으므로 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "홈을 밟은 뒤라도 태그하면 항상 아웃",
+                "isCorrect": false
+            },
+            {
+                "text": "태그업은 득점이 인정되지 않음",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-48",
+        "ruleId": "tag-3",
+        "topic": "태그 아웃",
+        "question": "학생이 “태그업에서 태그는 주자가 베이스를 밟는 것이고, 태그 아웃에서 태그도 같은 뜻”이라고 말합니다. 올바른 구별은?",
+        "hint": "태그업의 주자 행동과 태그 아웃의 수비 행동을 구별하세요.",
+        "options": [
+            {
+                "text": "태그업은 리터치 후 진루, 태그 아웃은 수비가 공을 가지고 주자를 터치하는 것",
+                "isCorrect": true
+            },
+            {
+                "text": "둘 다 수비가 베이스를 먼저 밟는 것",
+                "isCorrect": false
+            },
+            {
+                "text": "둘 다 타자가 공을 공중으로 치는 것",
+                "isCorrect": false
+            },
+            {
+                "text": "태그업은 포스 아웃의 다른 이름",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-49",
+        "ruleId": "tag-4",
+        "topic": "태그 아웃",
+        "question": "견제에 걸린 주자가 1루와 2루 사이에서 런다운에 갇혔습니다. 수비가 주자를 아웃시키려면?",
+        "hint": "강제 진루가 없는 런다운에서는 직접 태그해야 아웃입니다.",
+        "options": [
+            {
+                "text": "공을 가진 손이나 글러브로 주자를 직접 태그합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "1루와 2루를 번갈아 밟기만 합니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "주자 앞을 막으면 공 없이도 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "송구를 세 번 하면 자동 아웃입니다.",
+                "isCorrect": false
+            }
+        ]
+    },
+    {
+        "id": "core-50",
+        "ruleId": "tag-4",
+        "topic": "태그 아웃",
+        "question": "런다운 중 수비수가 공을 가지지 않은 상태로 주자를 터치했습니다. 그 접촉만으로 아웃인가요?",
+        "hint": "주자가 베이스 사이에 있어도 수비는 공을 확실히 가지고 적법하게 태그해야 합니다.",
+        "options": [
+            {
+                "text": "아니요. 공을 가진 손이나 글러브로 태그해야 합니다.",
+                "isCorrect": true
+            },
+            {
+                "text": "네. 런다운에서는 공이 없어도 됩니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "네. 베이스 사이에 있으면 자동 아웃입니다.",
+                "isCorrect": false
+            },
+            {
+                "text": "아니요. 런다운에서는 어떤 태그도 아웃 불가입니다.",
+                "isCorrect": false
+            }
+        ]
+    }
+];
         const QUIZ_SIZE = 10;
-        const QUIZ_HISTORY_KEY = 'bbmaster.quiz.seen.v1';
+        const QUIZ_HISTORY_KEY = 'bbmaster.quiz.core50.v1';
+        const quizBank = quizQuestions.map(q => ({
+            ...q, category: rulesData.find(rule => rule.id === q.ruleId).title
+        }));
         function shuffleQuiz(items) {
             const result = [...items];
             for (let i = result.length - 1; i > 0; i--) {
@@ -751,86 +1995,49 @@
             }
             return result;
         }
-
-        // 상황의 주자 배치, 아웃 수, 카운트에 따라 정답을 계산합니다.
-        function buildQuizBank() {
-            const bank = quizQuestions.map((q, i) => ({ ...q, id: `rule-${i}` }));
-            function add(id, category, question, hint, answer, choices) {
-                bank.push({ id, category, question, hint,
-                    options: choices.map(text => ({ text, isCorrect: text === answer })) });
-            }
-            for (let inning = 1; inning <= 9; inning++) {
-                for (let outs = 0; outs <= 2; outs++) {
-                    for (let mask = 0; mask < 8; mask++) {
-                        const bases = [1, 2, 3].filter(b => mask & (1 << (b - 1)));
-                        const runners = bases.length ? bases.map(b => `${b}루`).join('·') + '에 주자' : '주자 없음';
-                        const scene = `${inning}회, ${outs}아웃, ${runners}. `;
-                        const key = `${inning}-${outs}-${mask}`;
-                        const runs = bases.length + 1;
-                        add(`hr-${key}`, '타자/주자 규칙', scene + '타자가 페어 타구를 담장 밖으로 직접 넘겼고 모든 주자가 순서대로 홈을 밟았습니다. 이 홈런으로 몇 점을 얻나요?',
-                            '홈런에서는 기존 주자와 타자 모두 득점합니다.', `${runs}점`, ['1점', '2점', '3점', '4점']);
-                        let forced = 0;
-                        while (forced < 3 && (mask & (1 << forced))) forced++;
-                        const walkRuns = forced === 3 ? 1 : 0;
-                        add(`walk-${key}`, '타자/주자 규칙', scene + '타자가 볼넷으로 1루에 갑니다. 추가 진루 없이 밀어내기로 들어오는 점수는?',
-                            '볼넷으로 밀려나는 것은 뒤의 베이스가 모두 차 있어 강제로 진루해야 하는 주자뿐입니다.', `${walkRuns}점`, ['0점', '1점', '2점', '3점']);
-                        const forcedBases = [1];
-                        for (let b = 1; b <= forced; b++) forcedBases.push(b + 1);
-                        const destinations = forcedBases.map(b => b === 4 ? '홈' : `${b}루`).join(', ');
-                        add(`force-${key}`, '아웃 규칙', scene + '타자가 페어 땅볼을 쳤고 아직 아무도 아웃되지 않았습니다. 공을 가진 수비수가 주자를 직접 태그하지 않고 베이스를 먼저 밟아 아웃시킬 수 있는 곳은?',
-                            '타자주자는 1루로, 연결해서 베이스가 찬 주자는 다음 베이스로 강제로 진루합니다.', destinations,
-                            [...new Set([destinations, '1루만', '1루, 2루', '1루, 2루, 3루', '1루, 2루, 3루, 홈'])].slice(0, 4));
-                        add(`fly-${key}`, '아웃 규칙', scene + '수비수가 뜬공을 땅에 닿기 전에 잡아 타자만 아웃되었습니다. 그 직후 상황은?',
-                            '플라이 아웃으로 아웃 수가 하나 늘고, 세 번째 아웃이면 공수가 바뀝니다.', outs === 2 ? '공수 교대' : `${outs + 1}아웃, 공격 계속`,
-                            ['0아웃, 공격 계속', '1아웃, 공격 계속', '2아웃, 공격 계속', '공수 교대']);
-                        for (let balls = 0; balls <= 3; balls++) {
-                            for (let strikes = 0; strikes <= 2; strikes++) {
-                                const count = `${balls}볼 ${strikes}스트라이크에서 `;
-                                const foulAnswer = `${balls}볼 ${Math.min(2, strikes + 1)}스트라이크`;
-                                add(`foul-${key}-${balls}-${strikes}`, '타자/주자 규칙', scene + count + '타자가 번트가 아닌 일반 스윙으로 파울을 쳤고 수비수가 잡지 못했습니다. 다음 카운트는?',
-                                    '일반 파울은 스트라이크가 늘지만, 이미 2스트라이크라면 더 늘지 않습니다.', foulAnswer,
-                                    shuffleQuiz([foulAnswer, '삼진 아웃', '볼넷', `${balls}볼 ${strikes === 0 ? 2 : 0}스트라이크`]));
-                            }
-                        }
-                    }
-                }
-            }
-            return bank;
-        }
-        const quizBank = buildQuizBank();
         let seenQuizIds = new Set();
+        let lastQuizIds = [];
         function readQuizHistory() {
             try {
-                const saved = JSON.parse(localStorage.getItem(QUIZ_HISTORY_KEY) || '[]');
-                if (Array.isArray(saved)) saved.filter(id => typeof id === 'string').forEach(id => seenQuizIds.add(id));
-            } catch (_) { /* 저장이 불가능하면 현재 세션의 기록을 유지합니다. */ }
+                const saved = JSON.parse(localStorage.getItem(QUIZ_HISTORY_KEY) || 'null');
+                const validIds = new Set(quizBank.map(q => q.id));
+                if (saved && Array.isArray(saved.seen) && Array.isArray(saved.last)) {
+                    const validSeen = [...new Set(saved.seen.filter(id => validIds.has(id)))];
+                    // 10문제 단위의 정상적인 출제 기록만 복원합니다.
+                    if (validSeen.length % QUIZ_SIZE === 0) {
+                        seenQuizIds = new Set(validSeen);
+                        lastQuizIds = saved.last.filter(id => validIds.has(id)).slice(-QUIZ_SIZE);
+                    }
+                }
+            } catch (_) { /* 저장할 수 없는 환경에서는 현재 세션의 기록을 유지합니다. */ }
         }
         function takeNewQuiz() {
             readQuizHistory();
             let unseen = quizBank.filter(q => !seenQuizIds.has(q.id));
             if (unseen.length < QUIZ_SIZE) {
-                if (!confirm('준비된 새 문제를 모두 풀었습니다. 출제 기록을 초기화하고 다시 연습할까요?')) return null;
                 seenQuizIds.clear();
-                unseen = quizBank;
+                // 50문제를 한 바퀴 돌아도 직전 10문제는 연속해서 출제하지 않습니다.
+                unseen = quizBank.filter(q => !lastQuizIds.includes(q.id));
             }
-            // 같은 유형에 치우치지 않도록 유형별로 번갈아 뽑습니다.
             const groups = new Map();
             shuffleQuiz(unseen).forEach(q => {
-                const type = q.id.split('-')[0];
-                if (!groups.has(type)) groups.set(type, []);
-                groups.get(type).push(q);
+                if (!groups.has(q.topic)) groups.set(q.topic, []);
+                groups.get(q.topic).push(q);
             });
             const selected = [];
             while (selected.length < QUIZ_SIZE) {
-                for (const type of shuffleQuiz([...groups.keys()])) {
+                for (const topic of shuffleQuiz([...groups.keys()])) {
                     if (selected.length === QUIZ_SIZE) break;
-                    const q = groups.get(type).pop();
+                    const q = groups.get(topic).pop();
                     if (q) selected.push(q);
-                    if (!groups.get(type).length) groups.delete(type);
+                    if (!groups.get(topic).length) groups.delete(topic);
                 }
             }
+            lastQuizIds = selected.map(q => q.id);
             selected.forEach(q => seenQuizIds.add(q.id));
-            try { localStorage.setItem(QUIZ_HISTORY_KEY, JSON.stringify([...seenQuizIds])); } catch (_) {}
+            try {
+                localStorage.setItem(QUIZ_HISTORY_KEY, JSON.stringify({seen: [...seenQuizIds], last: lastQuizIds}));
+            } catch (_) {}
             return shuffleQuiz(selected).map(q => ({ ...q, options: shuffleQuiz(q.options.map(o => ({ ...o }))) }));
         }
         let quizAdvanceTimer = null;
@@ -1194,7 +2401,7 @@
                         btn.classList.replace('border-gray-200', 'border-green-500'); btn.classList.replace('hover:border-blue-500', 'border-green-500'); btn.classList.add('bg-green-50', 'text-green-800');
                         btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-green-500 text-white flex items-center justify-center font-bold mr-3 shrink-0 text-sm"><i class="fa-solid fa-check"></i></span><span class="flex-grow font-bold text-sm md:text-base">${opt.text}</span>`;
                         hintContainer.classList.remove('hidden'); hintContainer.className = 'mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs md:text-sm font-bold flex items-center fade-in';
-                        hintContainer.innerHTML = '<i class="fa-solid fa-party-horn text-green-500 mr-2 text-lg"></i><span>정답을 맞춘 문제입니다!</span>';
+                        hintContainer.innerHTML = '<i class="fa-solid fa-check text-green-500 mr-2 text-lg"></i><span>정답을 맞춘 문제입니다! ' + data.hint + '</span>';
                     } else if (state.wrongOptions.includes(opt.text)) {
                         btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60');
                         btn.innerHTML = `<span class="w-7 h-7 rounded-lg bg-red-500 text-white flex items-center justify-center font-bold mr-3 shrink-0 text-sm"><i class="fa-solid fa-xmark"></i></span><span class="flex-grow line-through text-sm md:text-base">${opt.text}</span>`;
@@ -1239,12 +2446,12 @@
                 const allBtns = document.querySelectorAll('#quiz-options button'); allBtns.forEach(b => { b.disabled = true; b.classList.add('cursor-not-allowed'); });
                 
                 hintContainer.classList.remove('hidden'); hintContainer.className = 'mt-3 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm font-bold flex items-center animate-pulse fade-in';
-                hintContainer.innerHTML = '<i class="fa-solid fa-party-horn text-green-500 mr-2 text-xl"></i><span>정답입니다! 훌륭해요! 잠시 후 다음 문제로 넘어갑니다.</span>';
+                hintContainer.innerHTML = '<i class="fa-solid fa-check text-green-500 mr-2 text-xl"></i><span>정답입니다! ' + hintText + '</span>';
 
                 const answeredIndex = window.currentQuizIndex;
                 const answeredSession = quizSession;
                 clearTimeout(quizAdvanceTimer);
-                quizAdvanceTimer = setTimeout(() => { if (answeredSession === quizSession && answeredIndex === window.currentQuizIndex) nextQuestion(true); }, 2000);
+                quizAdvanceTimer = setTimeout(() => { if (answeredSession === quizSession && answeredIndex === window.currentQuizIndex) nextQuestion(true); }, 5000);
             } else {
                 state.score = Math.max(0, state.score - 5); state.wrongOptions.push(opt.text);
                 btn.disabled = true; btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.replace('hover:border-blue-500', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60', 'cursor-not-allowed');
