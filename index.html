@@ -335,7 +335,7 @@
                 <div id="quiz-start" class="flex-grow flex flex-col items-center justify-center p-8 text-center">
                     <div class="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6"><i class="fa-solid fa-clipboard-question text-5xl text-blue-500"></i></div>
                     <h2 class="text-3xl font-black mb-2 text-gray-900">야구 규칙 실력 점검</h2>
-                    <p class="text-gray-500 mb-8 max-w-md">학습한 규칙들을 바탕으로 퀴즈를 풀어보세요. 틀려도 힌트와 함께 다시 도전할 수 있습니다!</p>
+                    <p class="text-gray-500 mb-8 max-w-md">매번 새로운 상황의 10문제를 풀어보세요. 이미 나온 문제는 제외하며, 틀리면 힌트를 보고 다시 도전할 수 있습니다!</p>
                     <button onclick="startQuiz()" class="bg-gray-900 hover:bg-black text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 text-lg">퀴즈 시작하기</button>
                 </div>
 
@@ -366,7 +366,7 @@
                     <div class="text-5xl font-black text-blue-600 mb-4" id="result-score">100점</div>
                     <p id="result-message" class="text-gray-600 mb-8 font-medium"></p>
                     <div class="flex space-x-3">
-                        <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow transition-colors"><i class="fa-solid fa-rotate-right mr-2"></i>다시 풀기</button>
+                        <button onclick="startQuiz()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow transition-colors"><i class="fa-solid fa-rotate-right mr-2"></i>새로운 10문제 풀기</button>
                         <button onclick="switchTab('learn')" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl transition-colors">학습으로 돌아가기</button>
                     </div>
                 </div>
@@ -741,6 +741,101 @@
             { category: '타자/주자 규칙', question: '플라이 아웃 상황에서 주자가 수비수가 공을 잡기도 전에 베이스에서 발을 떼고 출발했습니다. 수비팀이 어필하면?', hint: '출발이 너무 빨랐기 때문에 규칙 위반입니다.', options: [ { text: '다음 베이스 진루 허용', isCorrect: false }, { text: '다시 원래 자리로 돌아가면 무조건 세이프', isCorrect: false }, { text: '타자에게 경고 조치', isCorrect: false }, { text: '주자 아웃', isCorrect: true } ] }
         ];
 
+        const QUIZ_SIZE = 10;
+        const QUIZ_HISTORY_KEY = 'bbmaster.quiz.seen.v1';
+        function shuffleQuiz(items) {
+            const result = [...items];
+            for (let i = result.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+        }
+
+        // 상황의 주자 배치, 아웃 수, 카운트에 따라 정답을 계산합니다.
+        function buildQuizBank() {
+            const bank = quizQuestions.map((q, i) => ({ ...q, id: `rule-${i}` }));
+            function add(id, category, question, hint, answer, choices) {
+                bank.push({ id, category, question, hint,
+                    options: choices.map(text => ({ text, isCorrect: text === answer })) });
+            }
+            for (let inning = 1; inning <= 9; inning++) {
+                for (let outs = 0; outs <= 2; outs++) {
+                    for (let mask = 0; mask < 8; mask++) {
+                        const bases = [1, 2, 3].filter(b => mask & (1 << (b - 1)));
+                        const runners = bases.length ? bases.map(b => `${b}루`).join('·') + '에 주자' : '주자 없음';
+                        const scene = `${inning}회, ${outs}아웃, ${runners}. `;
+                        const key = `${inning}-${outs}-${mask}`;
+                        const runs = bases.length + 1;
+                        add(`hr-${key}`, '타자/주자 규칙', scene + '타자가 페어 타구를 담장 밖으로 직접 넘겼고 모든 주자가 순서대로 홈을 밟았습니다. 이 홈런으로 몇 점을 얻나요?',
+                            '홈런에서는 기존 주자와 타자 모두 득점합니다.', `${runs}점`, ['1점', '2점', '3점', '4점']);
+                        let forced = 0;
+                        while (forced < 3 && (mask & (1 << forced))) forced++;
+                        const walkRuns = forced === 3 ? 1 : 0;
+                        add(`walk-${key}`, '타자/주자 규칙', scene + '타자가 볼넷으로 1루에 갑니다. 추가 진루 없이 밀어내기로 들어오는 점수는?',
+                            '볼넷으로 밀려나는 것은 뒤의 베이스가 모두 차 있어 강제로 진루해야 하는 주자뿐입니다.', `${walkRuns}점`, ['0점', '1점', '2점', '3점']);
+                        const forcedBases = [1];
+                        for (let b = 1; b <= forced; b++) forcedBases.push(b + 1);
+                        const destinations = forcedBases.map(b => b === 4 ? '홈' : `${b}루`).join(', ');
+                        add(`force-${key}`, '아웃 규칙', scene + '타자가 페어 땅볼을 쳤고 아직 아무도 아웃되지 않았습니다. 공을 가진 수비수가 주자를 직접 태그하지 않고 베이스를 먼저 밟아 아웃시킬 수 있는 곳은?',
+                            '타자주자는 1루로, 연결해서 베이스가 찬 주자는 다음 베이스로 강제로 진루합니다.', destinations,
+                            [...new Set([destinations, '1루만', '1루, 2루', '1루, 2루, 3루', '1루, 2루, 3루, 홈'])].slice(0, 4));
+                        add(`fly-${key}`, '아웃 규칙', scene + '수비수가 뜬공을 땅에 닿기 전에 잡아 타자만 아웃되었습니다. 그 직후 상황은?',
+                            '플라이 아웃으로 아웃 수가 하나 늘고, 세 번째 아웃이면 공수가 바뀝니다.', outs === 2 ? '공수 교대' : `${outs + 1}아웃, 공격 계속`,
+                            ['0아웃, 공격 계속', '1아웃, 공격 계속', '2아웃, 공격 계속', '공수 교대']);
+                        for (let balls = 0; balls <= 3; balls++) {
+                            for (let strikes = 0; strikes <= 2; strikes++) {
+                                const count = `${balls}볼 ${strikes}스트라이크에서 `;
+                                const foulAnswer = `${balls}볼 ${Math.min(2, strikes + 1)}스트라이크`;
+                                add(`foul-${key}-${balls}-${strikes}`, '타자/주자 규칙', scene + count + '타자가 번트가 아닌 일반 스윙으로 파울을 쳤고 수비수가 잡지 못했습니다. 다음 카운트는?',
+                                    '일반 파울은 스트라이크가 늘지만, 이미 2스트라이크라면 더 늘지 않습니다.', foulAnswer,
+                                    shuffleQuiz([foulAnswer, '삼진 아웃', '볼넷', `${balls}볼 ${strikes === 0 ? 2 : 0}스트라이크`]));
+                            }
+                        }
+                    }
+                }
+            }
+            return bank;
+        }
+        const quizBank = buildQuizBank();
+        let seenQuizIds = new Set();
+        function readQuizHistory() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(QUIZ_HISTORY_KEY) || '[]');
+                if (Array.isArray(saved)) saved.filter(id => typeof id === 'string').forEach(id => seenQuizIds.add(id));
+            } catch (_) { /* 저장이 불가능하면 현재 세션의 기록을 유지합니다. */ }
+        }
+        function takeNewQuiz() {
+            readQuizHistory();
+            let unseen = quizBank.filter(q => !seenQuizIds.has(q.id));
+            if (unseen.length < QUIZ_SIZE) {
+                if (!confirm('준비된 새 문제를 모두 풀었습니다. 출제 기록을 초기화하고 다시 연습할까요?')) return null;
+                seenQuizIds.clear();
+                unseen = quizBank;
+            }
+            // 같은 유형에 치우치지 않도록 유형별로 번갈아 뽑습니다.
+            const groups = new Map();
+            shuffleQuiz(unseen).forEach(q => {
+                const type = q.id.split('-')[0];
+                if (!groups.has(type)) groups.set(type, []);
+                groups.get(type).push(q);
+            });
+            const selected = [];
+            while (selected.length < QUIZ_SIZE) {
+                for (const type of shuffleQuiz([...groups.keys()])) {
+                    if (selected.length === QUIZ_SIZE) break;
+                    const q = groups.get(type).pop();
+                    if (q) selected.push(q);
+                    if (!groups.get(type).length) groups.delete(type);
+                }
+            }
+            selected.forEach(q => seenQuizIds.add(q.id));
+            try { localStorage.setItem(QUIZ_HISTORY_KEY, JSON.stringify([...seenQuizIds])); } catch (_) {}
+            return shuffleQuiz(selected).map(q => ({ ...q, options: shuffleQuiz(q.options.map(o => ({ ...o }))) }));
+        }
+        let quizAdvanceTimer = null;
+        let quizSession = 0;
+
         let currentActiveRule = null;
         let popupTimeouts = []; 
         let animLoopTimer = null;
@@ -1053,10 +1148,12 @@
 
         // --- 퀴즈 진행 함수 ---
         function startQuiz() {
+            const questions = takeNewQuiz();
+            if (!questions) return;
+            clearTimeout(quizAdvanceTimer);
+            quizSession++;
             window.currentQuizIndex = 0;
-            
-            window.activeQuizData = [...quizQuestions].sort(() => Math.random() - 0.5);
-            window.activeQuizData.forEach(q => q.options.sort(() => Math.random() - 0.5));
+            window.activeQuizData = questions;
 
             window.quizStates = window.activeQuizData.map(() => ({ isSolved: false, score: 10, earnedScore: 0, wrongOptions: [] }));
 
@@ -1145,7 +1242,9 @@
                 hintContainer.innerHTML = '<i class="fa-solid fa-party-horn text-green-500 mr-2 text-xl"></i><span>정답입니다! 훌륭해요! 잠시 후 다음 문제로 넘어갑니다.</span>';
 
                 const answeredIndex = window.currentQuizIndex;
-                setTimeout(() => { if (answeredIndex === window.currentQuizIndex) nextQuestion(true); }, 2000);
+                const answeredSession = quizSession;
+                clearTimeout(quizAdvanceTimer);
+                quizAdvanceTimer = setTimeout(() => { if (answeredSession === quizSession && answeredIndex === window.currentQuizIndex) nextQuestion(true); }, 2000);
             } else {
                 state.score = Math.max(0, state.score - 5); state.wrongOptions.push(opt.text);
                 btn.disabled = true; btn.classList.replace('border-gray-200', 'border-red-500'); btn.classList.replace('hover:border-blue-500', 'border-red-500'); btn.classList.add('bg-red-50', 'text-red-800', 'opacity-60', 'cursor-not-allowed');
