@@ -343,7 +343,13 @@
                     <div class="px-4 py-4 md:px-6 md:py-5 border-b border-gray-100 bg-gray-50 shrink-0">
                         <div class="flex justify-between items-center mb-2"><span id="quiz-progress-text" class="text-xs font-bold text-gray-500">1 / 10</span></div>
                         <div class="w-full bg-gray-200 rounded-full h-2 mb-3 overflow-hidden"><div id="quiz-progress-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 10%"></div></div>
-                        <span id="quiz-category" class="inline-block px-2 py-1 font-bold rounded-full text-[10px] mb-2 bg-blue-100 text-blue-800"></span>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span id="quiz-category" class="inline-flex items-center px-3 py-1.5 font-bold rounded-lg text-xs bg-gray-200 text-gray-700"></span>
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-100 text-xs font-bold">
+                                <span class="text-gray-500">난이도</span>
+                                <span id="quiz-difficulty" role="img" aria-label="난이도 5점 중 1점" class="text-yellow-500 text-base leading-none tracking-wider whitespace-nowrap">★☆☆☆☆</span>
+                            </span>
+                        </div>
                         <h3 id="quiz-question-text" class="text-lg md:text-xl font-bold text-gray-900 leading-tight"></h3>
                     </div>
                     
@@ -754,7 +760,8 @@
                 "text": "인정 2루타",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-02",
@@ -779,7 +786,8 @@
                 "text": "아니요. 타자는 자동으로 아웃입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-03",
@@ -804,7 +812,8 @@
                 "text": "아니요. 타자는 자동으로 2루까지 갑니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-04",
@@ -829,7 +838,8 @@
                 "text": "스트라이크가 0으로 초기화",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-05",
@@ -854,7 +864,8 @@
                 "text": "스트라이크가 하나 줄어듭니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-06",
@@ -879,7 +890,8 @@
                 "text": "인정 2루타",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-07",
@@ -904,7 +916,8 @@
                 "text": "수비가 공을 찾는 동안 3루까지 갑니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-08",
@@ -929,7 +942,8 @@
                 "text": "인정 2루타",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-09",
@@ -954,7 +968,8 @@
                 "text": "타자에게 2루 진루권 부여",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-10",
@@ -979,7 +994,8 @@
                 "text": "수비가 1루로 던져야만 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-11",
@@ -1004,7 +1020,8 @@
                 "text": "네. 타자가 1루에 먼저 도착하면 됩니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-12",
@@ -1029,7 +1046,8 @@
                 "text": "아니요. 타자는 무조건 2루까지 갑니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-13",
@@ -1054,7 +1072,8 @@
                 "text": "그대로 3루까지 뛰어야 합니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-14",
@@ -1079,7 +1098,8 @@
                 "text": "투수 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-15",
@@ -1104,7 +1124,8 @@
                 "text": "네. 모든 주자는 반드시 다음 베이스로 뜁니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-16",
@@ -1129,7 +1150,8 @@
                 "text": "타자가 2루로 가고 3루 주자는 홈으로 갑니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-17",
@@ -1154,7 +1176,8 @@
                 "text": "수비팀이 누구를 아웃할지 고릅니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-18",
@@ -1179,7 +1202,8 @@
                 "text": "수비가 공을 찾을 때까지 자유롭게 진루",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-19",
@@ -1204,7 +1228,8 @@
                 "text": "1루에 남음",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-20",
@@ -1229,7 +1254,8 @@
                 "text": "타자와 함께 아웃됩니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-21",
@@ -1254,7 +1280,8 @@
                 "text": "타자가 선택한 베이스까지 갈 수 있습니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-22",
@@ -1279,7 +1306,8 @@
                 "text": "수비수가 송구를 시작한 순간",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-23",
@@ -1304,7 +1332,8 @@
                 "text": "타자와 함께 주자도 자동 아웃입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 4
     },
     {
         "id": "core-24",
@@ -1329,7 +1358,8 @@
                 "text": "네. 하지만 수비는 태그할 수 없습니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-25",
@@ -1354,7 +1384,8 @@
                 "text": "아니요. 태그업한 주자는 태그해도 세이프입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-26",
@@ -1379,7 +1410,8 @@
                 "text": "아니요. 대신 타자가 1루로 갑니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-27",
@@ -1404,7 +1436,8 @@
                 "text": "타자가 아웃이므로 주자는 어디로 가도 됩니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-28",
@@ -1429,7 +1462,8 @@
                 "text": "수비수가 주자를 직접 태그해야만 어필 가능",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-29",
@@ -1454,7 +1488,8 @@
                 "text": "네. 이후에는 수비가 태그해도 세이프입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-30",
@@ -1479,7 +1514,8 @@
                 "text": "아니요. 타자가 다시 타격해야 합니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 4
     },
     {
         "id": "core-31",
@@ -1504,7 +1540,8 @@
                 "text": "네. 1루수가 공 없이 밟아도 아웃입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-32",
@@ -1529,7 +1566,8 @@
                 "text": "타자가 멈추지 않았으므로 자동 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-33",
@@ -1554,7 +1592,8 @@
                 "text": "1루 주자는 원래 항상 도루해야 합니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 1
     },
     {
         "id": "core-34",
@@ -1579,7 +1618,8 @@
                 "text": "1루 주자와 타자가 모두 자동 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-35",
@@ -1604,7 +1644,8 @@
                 "text": "1루 주자만 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-36",
@@ -1629,7 +1670,8 @@
                 "text": "2루 주자만 홈으로 강제 진루",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-37",
@@ -1654,7 +1696,8 @@
                 "text": "타구가 땅볼이면 3루 주자만 자유롭게 두 베이스 진루",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-38",
@@ -1679,7 +1722,8 @@
                 "text": "1루 주자가 있는 것만으로 홈에서 포스 아웃",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-39",
@@ -1704,7 +1748,8 @@
                 "text": "만루이므로 1점 자동 득점",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-40",
@@ -1729,7 +1774,8 @@
                 "text": "홈만",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-41",
@@ -1754,7 +1800,8 @@
                 "text": "아니요. 기존 주자는 어떤 방법으로도 아웃 불가입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 5
     },
     {
         "id": "core-42",
@@ -1779,7 +1826,8 @@
                 "text": "0개",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-43",
@@ -1804,7 +1852,8 @@
                 "text": "아니요. 도루 중인 주자는 아웃시킬 수 없습니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-44",
@@ -1829,7 +1878,8 @@
                 "text": "아니요. 손으로 하는 태그는 모두 금지입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-45",
@@ -1854,7 +1904,8 @@
                 "text": "아니요. 안타 주자는 태그해도 아웃 불가입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-46",
@@ -1879,7 +1930,8 @@
                 "text": "네. 하지만 공이 없어도 같은 판정입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-47",
@@ -1904,7 +1956,8 @@
                 "text": "태그업은 득점이 인정되지 않음",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-48",
@@ -1929,7 +1982,8 @@
                 "text": "태그업은 포스 아웃의 다른 이름",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     },
     {
         "id": "core-49",
@@ -1954,7 +2008,8 @@
                 "text": "송구를 세 번 하면 자동 아웃입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 2
     },
     {
         "id": "core-50",
@@ -1979,7 +2034,8 @@
                 "text": "아니요. 런다운에서는 어떤 태그도 아웃 불가입니다.",
                 "isCorrect": false
             }
-        ]
+        ],
+        "difficulty": 3
     }
 ];
         const QUIZ_SIZE = 10;
@@ -2377,6 +2433,9 @@
             document.getElementById('quiz-progress-bar').style.width = ((window.currentQuizIndex) / window.activeQuizData.length * 100) + '%';
             document.getElementById('quiz-progress-text').textContent = `${window.currentQuizIndex + 1} / ${window.activeQuizData.length}`;
             document.getElementById('quiz-category').textContent = data.category;
+            const difficulty = document.getElementById('quiz-difficulty');
+            difficulty.textContent = '★'.repeat(data.difficulty) + '☆'.repeat(5 - data.difficulty);
+            difficulty.setAttribute('aria-label', `난이도 5점 중 ${data.difficulty}점`);
             document.getElementById('quiz-question-text').textContent = data.question;
             
             document.getElementById('btn-prev-quiz').disabled = window.currentQuizIndex === 0;
